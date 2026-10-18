@@ -188,6 +188,15 @@
   .gl b{display:block;font-size:14px}
   .gl span{color:var(--mute)}
 
+  /* kart sürüklerken büyüteç (parmak ekranı kapatıyor) */
+  .loupe{position:fixed;z-index:11;display:none;border-radius:50%;overflow:hidden;pointer-events:none;
+    border:2.5px solid var(--bone);box-shadow:0 6px 24px rgba(0,0,0,.6)}
+  .loupe.show{display:block}
+  .loupe canvas{display:block;width:100%;height:100%}
+  .loupe::before,.loupe::after{content:"";position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+  .loupe::before{left:50%;top:calc(50% - 11px);width:1.5px;height:22px;margin-left:-.75px}
+  .loupe::after{top:50%;left:calc(50% - 11px);height:1.5px;width:22px;margin-top:-.75px}
+
   /* test zorluk seçimi ve soru panelleri */
   .qmenu{position:fixed;inset:0;z-index:16;display:flex;align-items:center;justify-content:center;padding:24px;
     background:rgba(8,11,16,.7);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -324,6 +333,7 @@
   </div>
 </div>
 <div class="tzwrap" id="tzwrap"><input type="range" id="tzRange" min="0" max="2" step="0.005" aria-label="Transvers düzlem yüksekliği"></div>
+<div class="loupe" id="loupe" aria-hidden="true"><canvas id="loupeC" width="260" height="260"></canvas></div>
 <div class="qmenu" id="qmenu" role="dialog" aria-label="Zorluk seç">
   <div class="box">
     <h3>Kendini test et</h3>
@@ -964,7 +974,7 @@ function showMsg(text, kind, ms){
   if (ms) qmsgT = setTimeout(hideMsg, ms);
 }
 function hideMsg(){ clearTimeout(qmsgT); qmsg.classList.remove('show'); }
-function resetCardPos(){ qcard.classList.remove('drag'); qcard.style.left = ''; qcard.style.top = ''; }
+function resetCardPos(){ qcard.classList.remove('drag'); qcard.style.left = ''; qcard.style.top = ''; hideLoupe(); }
 function updateProg(){ qprog.textContent = 'Doğru: ' + quiz.solved + ' / ' + quiz.total; }
 /* Çift (sağ/sol) bölgeler: karşı taraftaki karşılığı da doğru sayılır.
    Orta çizgi, ortadaki bölgelerin (baş, boyun, göğüs...) konumundan otomatik bulunur. */
@@ -1108,11 +1118,49 @@ function judge(i, point){
   }, QUIZ.travelMs + QUIZ.wrongLookMs);
 }
 
+/* ---------- büyüteç: kart sürüklerken parmağın altındaki alanı göster (yalnızca dokunmatik) ---------- */
+const loupe = document.getElementById('loupe');
+const loupeC = document.getElementById('loupeC');
+const lctx = loupeC.getContext('2d');
+const touchUI = window.matchMedia('(pointer: coarse)').matches;
+let loupeOn = false, loupeX = 0, loupeY = 0, loupeS = 120;
+const LOUPE_ZOOM = 3;
+function updateLoupe(x, y){
+  if (!touchUI) return;
+  const w = window.innerWidth;
+  loupeS = Math.round(Math.min(150, w * 0.38));
+  loupe.style.width = loupe.style.height = loupeS + 'px';
+  // iğnenin olmadığı köşeye koy: iğne soldaysa sağa, sağdaysa sola
+  loupe.style.left = (x < w / 2 ? (w - loupeS - 12) : 12) + 'px';
+  if (y < 116 + loupeS + 24){          // iğne yukarıdaysa büyüteç alta insin
+    loupe.style.top = 'auto';
+    loupe.style.bottom = 'calc(var(--safe-b) + 24px)';
+  } else {
+    loupe.style.bottom = 'auto';
+    loupe.style.top = 'calc(var(--safe-t) + 116px)';
+  }
+  loupe.classList.add('show');
+  loupeOn = true; loupeX = x; loupeY = y;
+}
+function hideLoupe(){ loupeOn = false; loupe.classList.remove('show'); }
+function drawLoupe(){
+  if (!loupeOn) return;
+  const pr = renderer.getPixelRatio(), cs = loupeC.width;
+  const src = (loupeS / LOUPE_ZOOM) * pr;
+  lctx.fillStyle = '#121822';
+  lctx.fillRect(0, 0, cs, cs);
+  try { lctx.drawImage(renderer.domElement, loupeX * pr - src / 2, loupeY * pr - src / 2, src, src, 0, 0, cs, cs); } catch (e) {}
+}
+
 /* kartı sürükle-bırak */
+const PIN_OFF = touchUI ? 76 : 12;   // iğne ucu parmağın bu kadar üstünde (parmak hedefi kapatmasın)
 function moveCard(e){
+  const px = e.clientX, py = Math.max(0, e.clientY - PIN_OFF);
+  quiz.pin = { x:px, y:py };
   qcard.classList.add('drag');
-  qcard.style.left = e.clientX + 'px';
-  qcard.style.top = e.clientY + 'px';
+  qcard.style.left = px + 'px';
+  qcard.style.top = (py + 8) + 'px';
+  updateLoupe(px, py);
 }
 qcard.addEventListener('pointerdown', e => {
   if (!quiz.active || quiz.busy || quiz.cur < 0) return;
@@ -1127,8 +1175,9 @@ qcard.addEventListener('pointerup', e => {
   if (!quiz.drag) return;
   quiz.drag = false;
   try { qcard.releasePointerCapture(e.pointerId); } catch (err) {}
-  const x = e.clientX, y = e.clientY;
-  if (y > window.innerHeight - 110){ resetCardPos(); return; }       // geri bırakıldı
+  const pin = quiz.pin || { x:e.clientX, y:e.clientY - PIN_OFF };
+  const x = pin.x, y = pin.y;
+  if (e.clientY > window.innerHeight - 110){ resetCardPos(); return; }       // geri bırakıldı
   raycaster.setFromCamera(new THREE.Vector2(x / window.innerWidth * 2 - 1, -(y / window.innerHeight) * 2 + 1), camera);
   const hits = raycaster.intersectObject(model, true);
   if (!hits.length){ resetCardPos(); showMsg('Kartı modelin üzerine bırakın', 'info', 1400); return; }
@@ -1821,6 +1870,7 @@ function frame(now){
   updatePlaneLabels();
   updateAxes();
   renderer.render(scene, camera);
+  drawLoupe();
 
   const w = window.innerWidth, h = window.innerHeight;
   for (const m of markers){
