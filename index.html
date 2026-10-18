@@ -65,6 +65,22 @@
   .btn[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
   .btn:focus-visible,.dot:focus-visible,.item:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 
+  /* WhatsApp paylaş: sol altta, yeşil parlama */
+  .wa{position:fixed;z-index:6;left:calc(var(--safe-l) + 14px);bottom:calc(var(--safe-b) + 12px);
+    width:48px;height:48px;padding:0;border:0;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:#fff;background:#25d366;
+    box-shadow:0 0 0 2px rgba(255,255,255,.18),0 0 14px 3px rgba(37,211,102,.75),0 0 34px 10px rgba(37,211,102,.4);
+    animation:waGlow 2.6s ease-in-out infinite}
+  .wa svg{width:26px;height:26px;display:block}
+  .wa:active{transform:scale(.94)}
+  .wa:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
+  @keyframes waGlow{
+    0%,100%{box-shadow:0 0 0 2px rgba(255,255,255,.18),0 0 12px 2px rgba(37,211,102,.65),0 0 28px 8px rgba(37,211,102,.32)}
+    50%{box-shadow:0 0 0 2px rgba(255,255,255,.28),0 0 18px 5px rgba(37,211,102,.9),0 0 44px 14px rgba(37,211,102,.5)}}
+  .testing .wa,.editing .wa{display:none!important}
+  @media (min-width:900px){ .wa{bottom:20px} }
+  @media (prefers-reduced-motion:reduce){ .wa{animation:none} }
+
   /* info card */
   .card{position:fixed;z-index:6;left:50%;bottom:calc(var(--safe-b) + 72px);transform:translate(-50%,16px);
     width:min(92vw,420px);padding:12px 44px 12px 16px;border-radius:14px;border:1.5px solid var(--c,#fff);
@@ -201,7 +217,7 @@
   .qmenu{position:fixed;inset:0;z-index:16;display:flex;align-items:center;justify-content:center;padding:24px;
     background:rgba(8,11,16,.7);opacity:0;pointer-events:none;transition:opacity .25s}
   .qmenu.show{opacity:1;pointer-events:auto}
-  .qmenu .box{width:min(92vw,380px);padding:20px;border-radius:16px;border:1.5px solid var(--bone);background:rgba(13,17,23,.97);text-align:center}
+  .qmenu .box{max-height:92vh;overflow:auto;width:min(92vw,380px);padding:20px;border-radius:16px;border:1.5px solid var(--bone);background:rgba(13,17,23,.97);text-align:center}
   .qmenu h3{margin:0;font-size:22px;font-weight:700}
   .qmenu .sub{margin:2px 0 14px;color:var(--mute);font-size:14px}
   .qmenu .lv{display:block;width:100%;margin:0 0 10px;padding:12px 14px;text-align:left;border-radius:12px;cursor:pointer;
@@ -210,7 +226,7 @@
   .qmenu .lv b{display:block;font-size:17px}
   .qmenu .lv span{display:block;color:var(--mute);font-size:13px;margin-top:2px}
   .qpanel{position:fixed;z-index:9;left:50%;bottom:calc(var(--safe-b) + 16px);transform:translateX(-50%);
-    width:min(94vw,520px);max-height:55vh;overflow:auto;padding:14px;border-radius:16px;border:1.5px solid var(--bone);
+    width:min(94vw,520px);max-height:68vh;overflow:auto;padding:14px;border-radius:16px;border:1.5px solid var(--bone);
     background:rgba(13,17,23,.96);opacity:0;pointer-events:none;transition:opacity .2s}
   .qpanel.show{opacity:1;pointer-events:auto}
   .qpanel .qh{color:var(--mute);font-size:13px;margin-bottom:8px;text-align:center}
@@ -230,6 +246,15 @@
   .mb.bad{border-color:#ff5a7a;background:rgba(255,90,122,.25)}
   .qmsg.top{bottom:auto;top:calc(var(--safe-t) + 64px)}
   .mk.quizq .tag{display:none}
+
+  /* çoktan seçmeli */
+  #mqQ{font-size:17px;text-align:left;margin:4px 2px 12px}
+  .mqopts{display:flex;flex-direction:column;gap:8px}
+  .mq{display:flex;gap:10px;align-items:flex-start;text-align:left;min-height:48px;padding:9px 11px;border-radius:12px;
+    border:1px solid var(--line);background:var(--ink-2);font-size:14px;line-height:1.3;cursor:pointer}
+  .mq b{flex:none;width:24px}
+  .mq.ok{border-color:#2fd07a;background:rgba(47,208,122,.22)}
+  .mq.bad{border-color:#ff5a7a;background:rgba(255,90,122,.25)}
 
   /* giriş yönergesi */
   .intro{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -281,8 +306,11 @@
 <div class="bar">
   <button class="btn" id="bLabels" aria-pressed="false">Etiketler</button>
   <button class="btn" id="bList">Bölgeler</button>
-  <button class="btn" id="bShare">WhatsApp'ta paylaş</button>
 </div>
+
+<button class="wa" id="bShare" aria-label="WhatsApp'ta paylaş" title="WhatsApp'ta paylaş">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+</button>
 
 <aside class="panel" id="panel" aria-label="Vücut bölgeleri">
   <h2>Bölgeler <button id="pClose" aria-label="Kapat">&times;</button></h2>
@@ -339,8 +367,9 @@
     <h3>Kendini test et</h3>
     <p class="sub">Zorluk seç</p>
     <button class="lv" data-lv="easy"><b>Kolay</b><span>Kartı 3B model üzerinde doğru yere koy</span></button>
-    <button class="lv" data-lv="medium"><b>Orta</b><span>Eşleştirme ve doğru / yanlış soruları</span></button>
+    <button class="lv" data-lv="medium"><b>Orta</b><span>Eşleştirme ve doğru / yanlış soruları (anatomi çeşitleri dahil)</span></button>
     <button class="lv" data-lv="hard"><b>Zor</b><span>Cevabı kendin yaz</span></button>
+    <button class="lv" data-lv="mcq"><b>Çoktan seçmeli (A–E)</b><span>Anatomi çeşitleri ve Dissectio · ayrı grup</span></button>
     <button class="btn" id="qmCancel">Vazgeç</button>
   </div>
 </div>
@@ -359,6 +388,11 @@
     <div class="tfq" id="tyQ"></div>
     <input id="tyIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Latince adını yaz">
     <div class="row"><button class="btn" id="tyGive">Bilmiyorum</button><button class="btn" id="tySend">Kontrol et</button></div>
+  </div>
+  <div id="qMCQ" hidden>
+    <div class="qh">Çoktan seçmeli · doğru şıkkı seç</div>
+    <div class="tfq" id="mqQ"></div>
+    <div class="mqopts" id="mqOpts"></div>
   </div>
 </div>
 <div class="qtop"><span id="qprog"></span><button class="btn" id="qExit">Çık</button></div>
@@ -1024,6 +1058,8 @@ function startQuiz(mode){
     const j = Math.floor(Math.random() * (k + 1));
     [quiz.queue[k], quiz.queue[j]] = [quiz.queue[j], quiz.queue[k]];
   }
+  if (quiz.mode === 'mcq') quiz.queue = buildMcq();          // teorik grup: anatomi çeşitleri
+  quiz.theoryLeft = quiz.mode === 'medium' ? 2 : 0;           // orta modda 2 tur çeşit eşleştirmesi
   quiz.total = quiz.queue.length;
   quiz.tol = markers.map((m, i) => {
     let nn = Infinity;
@@ -1060,9 +1096,13 @@ function nextCard(){
   hideMsg();
   updateProg();
   hidePanels();
+  if (quiz.mode === 'medium' && quiz.theoryLeft > 0 && (!quiz.queue.length || Math.random() < 0.2)){
+    quiz.theoryLeft--; quiz.busy = false; controls.enabled = true; return theoryMatch();
+  }
   if (!quiz.queue.length){ finishQuiz(); return; }
   quiz.busy = false;
   controls.enabled = true;
+  if (quiz.mode === 'mcq') return mcqCard();
   if (quiz.mode === 'hard') return typeCard();
   if (quiz.mode === 'medium') return (quiz.queue.length >= 3 && Math.random() >= 0.3) ? matchRound() : tfCard();
   placeCard();
@@ -1083,7 +1123,7 @@ function finishQuiz(){
   qcard.classList.add('hide');
   const pct = quiz.attempts ? Math.round(quiz.total / quiz.attempts * 100) : 100;
   document.getElementById('qStats').textContent =
-    quiz.total + ' terimin hepsini doğru yaptınız. Deneme: ' + quiz.attempts + ' · Hata: ' + quiz.wrong + ' · İsabet: %' + pct;
+    quiz.total + (quiz.mode === 'mcq' ? ' sorunun' : ' terimin') + ' hepsini doğru yaptınız. Deneme: ' + quiz.attempts + ' · Hata: ' + quiz.wrong + ' · İsabet: %' + pct;
   qend.classList.add('show');
 }
 
@@ -1547,6 +1587,7 @@ function loadModel(M){
 const qmenu = document.getElementById('qmenu');
 const qpanel = document.getElementById('qpanel');
 const qMatch = document.getElementById('qMatch'), qTF = document.getElementById('qTF'), qType = document.getElementById('qType');
+const qMCQ = document.getElementById('qMCQ');
 const tfQ = document.getElementById('tfQ'), tyQ = document.getElementById('tyQ'), tyH = document.getElementById('tyH'), tyIn = document.getElementById('tyIn');
 const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
 const norm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\(.*?\)\s*/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -1555,13 +1596,13 @@ function requeue(i, extra){ quiz.queue.splice(Math.min(QUIZ.requeueAfter + (extr
 function advance(ms){ const run = quiz.run; setTimeout(() => { if (run === quiz.run) nextCard(); }, ms); }
 function hidePanels(){
   qpanel.classList.remove('show');
-  qMatch.hidden = qTF.hidden = qType.hidden = true;
+  qMatch.hidden = qTF.hidden = qType.hidden = qMCQ.hidden = true;
   qcard.classList.add('hide'); resetCardPos();
   if (quiz.qMark !== undefined && quiz.qMark >= 0){ unreveal(quiz.qMark); quiz.qMark = -1; }
-  quiz.tf = quiz.ty = quiz.match = null;
+  quiz.tf = quiz.ty = quiz.match = quiz.mq = null;
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
-function showPanel(el){ qMatch.hidden = qTF.hidden = qType.hidden = true; el.hidden = false; qpanel.classList.add('show'); }
+function showPanel(el){ qMatch.hidden = qTF.hidden = qType.hidden = qMCQ.hidden = true; qpanel.scrollTop = 0; el.hidden = false; qpanel.classList.add('show'); }
 
 /* zorluk menüsü */
 qmenu.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { qmenu.classList.remove('show'); startQuiz(b.dataset.lv); }));
@@ -1620,6 +1661,7 @@ function matchRound(){
   };
   shuffle(picks).forEach(i => mL.appendChild(mk(i, REGIONS[i].latin, 'L')));
   shuffle(picks).forEach(i => mR.appendChild(mk(i, REGIONS[i].tr, 'R')));
+  qMatch.querySelector('.qh').textContent = 'Eşleştir: bir Latince terimi ve Türkçe karşılığını seç';
   showPanel(qMatch);
 }
 function pickMatch(side, i, btn){
@@ -1647,6 +1689,7 @@ function pickMatch(side, i, btn){
 }
 function finishMatch(){
   const st = quiz.match; quiz.busy = true;
+  if (st.theory){ showMsg(st.wrong.size ? 'Eşleştirme tamam' : 'Hepsi doğru', st.wrong.size ? 'bad' : 'ok'); advance(1200); return; }
   let k = 0;
   st.items.forEach(i => { if (st.wrong.has(i)) requeue(i, k++); else quiz.solved++; });
   updateProg();
@@ -1696,6 +1739,104 @@ function submitType(giveUp){
 document.getElementById('tySend').addEventListener('click', () => submitType(false));
 document.getElementById('tyGive').addEventListener('click', () => submitType(true));
 tyIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); submitType(false); } });
+
+/* ---------- anatomi çeşitleri (teorik sorular) ---------- */
+const ANAT_TYPES = [
+  { n:'Sistematik anatomi', d:'Vücudu oluşturan sistemleri ayrı ayrı inceler',
+    q:'İnsan vücudunu meydana getiren sistemleri ayrı ayrı ele alarak inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Topoğrafik (bölgesel) anatomi', d:'Bölgelere ayırıp yapıları sistem farkı gözetmeden tabaka tabaka inceler',
+    q:'Vücudu bölgelere ayırıp bu bölgelerdeki tüm yapıları sistem farkı gözetmeksizin tabaka tabaka inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Gross (makroskopik) anatomi', d:'İnsan vücudunu çıplak gözle inceler',
+    q:'İnsan vücudunu çıplak gözle inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Mikroskopik anatomi (histoloji)', d:'Hücre ve dokuları mikroskopla inceler',
+    q:'Hücre ve dokuları mikroskop yardımıyla inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Gelişim anatomisi', d:'Zigot oluşumundan ölüme kadar geçirilen aşamaları inceler',
+    q:'Zigot oluşumundan itibaren insanın ölünceye kadar geçirdiği aşamaları inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Fonksiyonel anatomi', d:'Yapı ve fonksiyon bütünlüğü içinde vücudu inceler',
+    q:'Yapı ve fonksiyon bütünlüğü içerisinde insan vücudunu inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Komparatif (karşılaştırmalı) anatomi', d:'Hayvan gruplarının yapılarını karşılaştırarak inceler (veterinerlik, zooloji)',
+    q:'Veterinerlik ve zooloji gibi dallarda okutulan, çeşitli hayvan gruplarının yapılarını karşılaştırarak inceleyen anatomi çeşidi hangisidir?' },
+  { n:'Sportif anatomi', d:'Spor yüksekokullarında okutulur, hareket sistemi ağırlıklıdır',
+    q:'Spor yüksekokullarında okutulan ve daha çok hareket sistemi ağırlıklı olan anatomi çeşidi hangisidir?' },
+  { n:'Artistik anatomi', d:'Güzel sanatlarda (resim, heykeltıraş) okutulur, yüzeyel anatomi ağırlıklıdır',
+    q:'Güzel sanatlar eğitimi veren okullarda (resim, heykeltıraş) okutulan, yüzeyel anatomi ağırlıklı anatomi çeşidi hangisidir?' },
+];
+const mqQ = document.getElementById('mqQ'), mqOpts = document.getElementById('mqOpts');
+const opts5 = (correct, wrongs) => [correct, ...shuffle(wrongs.filter(x => x !== correct)).slice(0, 4)];   // 0. şık doğru, gösterirken karışır
+
+function buildMcq(){
+  const names = ANAT_TYPES.map(t => t.n), descs = ANAT_TYPES.map(t => t.d);
+  const must = [
+    { q:'Anatomi sözcüğünün Latince karşılığı hangisidir?',
+      o:opts5('Dissectio (Diseksiyon)', ['Palpatio (Palpasyon)', 'Inspectio (İnspeksiyon)', 'Auscultatio (Oskültasyon)', 'Percussio (Perküsyon)', 'Histologia (Histoloji)']) },
+    { q:'Dissectio (Dissection) terimi aşağıdaki bilim dallarından hangisinin Latince karşılığıdır?',
+      o:opts5('Anatomi', ['Histoloji', 'Embriyoloji', 'Fizyoloji', 'Patoloji']) },
+  ];
+  const rest = [];
+  ANAT_TYPES.forEach(t => {
+    rest.push({ q:t.q, o:opts5(t.n, names) });
+    rest.push({ q:'"' + t.n + '" için aşağıdaki tanımlardan hangisi doğrudur?', o:opts5(t.d, descs) });
+  });
+  rest.push({ q:'Aşağıdakilerden hangisi gelişim anatomisinin alt dallarından biri değildir?',
+    o:['Sportif anatomi', 'Embriyoloji', 'Çocukluk anatomisi (Nipio anatomi)', 'Yetişkin anatomisi (Adult anatomi)', 'İhtiyarlık anatomisi (Geriatrik anatomi)'] });
+  rest.push({ q:'Gelişim anatomisinin "Nipio anatomi" adıyla da bilinen alt dalı hangisidir?',
+    o:['Çocukluk anatomisi', 'Embriyoloji', 'Yetişkin anatomisi', 'İhtiyarlık anatomisi', 'Sportif anatomi'] });
+  return shuffle(must.concat(shuffle(rest).slice(0, 10)));      // 2 Dissectio sorusu + 10 rastgele = 12 soru
+}
+
+function mcqCard(){
+  const q = quiz.queue.shift();
+  quiz.cur = -1; quiz.busy = false;
+  const st = quiz.mq = { q, btns:[] };
+  mqQ.textContent = q.q;
+  mqOpts.innerHTML = '';
+  shuffle(q.o.map((t, i) => ({ t, ok:i === 0 }))).forEach((o, k) => {
+    const b = document.createElement('button');
+    b.className = 'mq';
+    const l = document.createElement('b'); l.textContent = 'ABCDE'[k] + ')';
+    const sp = document.createElement('span'); sp.textContent = o.t;
+    b.append(l, sp);
+    b.addEventListener('click', () => answerMcq(b, o.ok));
+    mqOpts.appendChild(b);
+    st.btns.push({ b, ok:o.ok, letter:'ABCDE'[k], t:o.t });
+  });
+  showPanel(qMCQ);
+}
+function answerMcq(b, ok){
+  const st = quiz.mq;
+  if (!quiz.active || quiz.busy || !st) return;
+  quiz.busy = true; quiz.attempts++;
+  const right = st.btns.find(x => x.ok);
+  if (ok){
+    quiz.solved++; updateProg();
+    b.classList.add('ok'); showMsg('Doğru', 'ok'); advance(1000);
+  } else {
+    quiz.wrong++;
+    b.classList.add('bad'); right.b.classList.add('ok');
+    quiz.queue.splice(Math.min(QUIZ.requeueAfter, quiz.queue.length), 0, st.q);   // yanlış soru tekrar gelir
+    showMsg('Yanlış. Doğru cevap: ' + right.letter + ') ' + right.t, 'bad'); advance(3200);
+  }
+}
+
+/* orta mod: anatomi çeşidi ↔ tanım eşleştirmesi (Anatomi ↔ Dissectio her turda var) */
+function theoryMatch(){
+  const pool = [{ l:'Anatomi', r:'Dissectio (Diseksiyon)' }]
+    .concat(shuffle(ANAT_TYPES).slice(0, 3).map(t => ({ l:t.n, r:t.d })));
+  quiz.cur = -1;
+  const st = quiz.match = { items:pool.map((_, i) => i), done:new Set(), wrong:new Set(), selL:-1, selR:-1, theory:true };
+  const mL = document.getElementById('mL'), mR = document.getElementById('mR');
+  mL.innerHTML = mR.innerHTML = '';
+  const mk = (i, text, side) => {
+    const b = document.createElement('button');
+    b.className = 'mb'; b.textContent = text; b.dataset.i = i;
+    b.addEventListener('click', () => pickMatch(side, i, b));
+    return b;
+  };
+  shuffle(st.items).forEach(i => mL.appendChild(mk(i, pool[i].l, 'L')));
+  shuffle(st.items).forEach(i => mR.appendChild(mk(i, pool[i].r, 'R')));
+  qMatch.querySelector('.qh').textContent = 'Eşleştir: anatomi çeşidini ve tanımını seç';
+  showPanel(qMatch);
+}
 
 /* mobil klavye açılınca panel klavyenin altında kalmasın */
 if (window.visualViewport){
