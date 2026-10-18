@@ -281,7 +281,7 @@
 <div class="bar">
   <button class="btn" id="bLabels" aria-pressed="false">Etiketler</button>
   <button class="btn" id="bList">Bölgeler</button>
-  <button class="btn" id="bEdit">Düzenle</button>
+  <button class="btn" id="bShare">WhatsApp'ta paylaş</button>
 </div>
 
 <aside class="panel" id="panel" aria-label="Vücut bölgeleri">
@@ -953,7 +953,10 @@ function setEditing(on){
     buildAxes();
   }
 }
-document.getElementById('bEdit').addEventListener('click', () => setEditing(true));
+document.getElementById('bShare').addEventListener('click', () => {
+  const text = 'Anatomia – anatomik terimler: ' + location.href;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+});
 document.getElementById('edClose').addEventListener('click', () => setEditing(false));
 
 /* ---------- kendini test et modu ---------- */
