@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>Anatomia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,500;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0d1117;
+    --ink-2:#161c26;
+    --bone:#ece6d8;
+    --mute:#8f98a8;
+    --line:rgba(236,230,216,.16);
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-l:env(safe-area-inset-left,0px);
+    --safe-r:env(safe-area-inset-right,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--bone);
+    font-family:'Lora',Georgia,'Times New Roman',serif;font-style:italic;overscroll-behavior:none}
+  body{background:radial-gradient(ellipse at 50% 38%,#232c3b 0%,#121822 55%,#0a0d13 100%)}
+  button{font:inherit;font-style:italic;color:inherit}
+
+  /* background signature */
+  .signature{position:fixed;left:0;right:0;top:calc(var(--safe-t) + 72px);text-align:center;z-index:0;
+    font-size:clamp(20px,5.2vw,46px);line-height:1.1;color:var(--bone);opacity:.1;pointer-events:none;user-select:none;padding:0 16px}
+
+  #stage{position:fixed;inset:0;z-index:1;touch-action:none}
+  #stage canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+  #markers{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+
+  /* header */
+  .head{position:fixed;z-index:5;top:calc(var(--safe-t) + 14px);left:calc(var(--safe-l) + 16px);pointer-events:none}
+  .head h1{margin:0;font-weight:700;font-size:clamp(22px,5vw,32px);letter-spacing:.01em}
+  .head p{margin:2px 0 0;color:var(--mute);font-size:clamp(12px,3.2vw,14px)}
+
+  /* markers */
+  .mk{position:absolute;left:0;top:0;will-change:transform}
+  .mk.off{visibility:hidden}
+  .dot{pointer-events:auto;position:absolute;left:-19px;top:-19px;width:38px;height:38px;background:none;border:0;padding:0;cursor:pointer}
+  .dot::after{content:"";position:absolute;inset:12px;border-radius:50%;background:var(--c);
+    box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 12px var(--c);transition:transform .2s}
+  .mk.active .dot::after{transform:scale(1.5)}
+  .tag{position:absolute;top:-13px;left:16px;white-space:nowrap;pointer-events:none;
+    padding:3px 9px;border:1.5px solid var(--c);border-radius:8px;background:rgba(13,17,23,.86);
+    font-size:12.5px;opacity:0;transition:opacity .2s}
+  .tag b{font-weight:700}
+  .tag small{color:var(--mute);font-size:11.5px}
+  .mk.left .tag{left:auto;right:16px}
+  .labels-on .tag,.mk.active .tag{opacity:1}
+  .mk.active{z-index:3}
+
+  /* controls bar */
+  .bar{position:fixed;z-index:6;left:0;right:0;bottom:calc(var(--safe-b) + 12px);
+    display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 calc(var(--safe-r) + 10px) 0 calc(var(--safe-l) + 10px)}
+  .btn{min-height:44px;padding:0 16px;border-radius:22px;border:1px solid var(--line);
+    background:rgba(22,28,38,.84);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    font-size:14px;cursor:pointer;transition:background .15s,border-color .15s}
+  .btn:hover{border-color:rgba(236,230,216,.4)}
+  .btn[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+  .btn:focus-visible,.dot:focus-visible,.item:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+
+  /* info card */
+  .card{position:fixed;z-index:6;left:50%;bottom:calc(var(--safe-b) + 72px);transform:translate(-50%,16px);
+    width:min(92vw,420px);padding:12px 44px 12px 16px;border-radius:14px;border:1.5px solid var(--c,#fff);
+    background:rgba(13,17,23,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+  .card.open{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+  .card .lat{font-size:22px;font-weight:700;line-height:1.15}
+  .card .tr{color:var(--mute);font-size:14px;margin-top:2px}
+  .card .x{position:absolute;right:4px;top:4px;width:40px;height:40px;border:0;background:none;font-size:22px;cursor:pointer;color:var(--mute)}
+
+  /* list panel */
+  .panel{position:fixed;z-index:7;top:0;right:0;bottom:0;width:min(86vw,340px);
+    padding:calc(var(--safe-t) + 14px) 14px calc(var(--safe-b) + 14px);
+    background:rgba(13,17,23,.96);border-left:1px solid var(--line);
+    transform:translateX(102%);transition:transform .3s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .panel.open{transform:none}
+  .panel h2{margin:4px 0 10px;font-size:18px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .panel h2 button{border:0;background:none;font-size:24px;width:40px;height:40px;color:var(--mute);cursor:pointer}
+  .item{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:6px 10px;margin:0 0 4px;
+    border:1px solid transparent;border-radius:10px;background:none;text-align:left;cursor:pointer}
+  .item:hover,.item.active{background:var(--ink-2);border-color:var(--line)}
+  .item i.sw{flex:none;width:6px;align-self:stretch;border-radius:3px;background:var(--c)}
+  .item .l{font-size:16px;font-weight:700;display:block;line-height:1.2}
+  .item .t{font-size:13px;color:var(--mute)}
+
+  /* editor */
+  .editing .bar,.editing .card{display:none}
+  .editing .dot{touch-action:none}
+  .editing .dot::after{inset:9px}
+  .editor{position:fixed;z-index:8;left:50%;bottom:0;width:min(100vw,560px);transform:translate(-50%,105%);
+    transition:transform .3s ease;padding:12px 14px calc(var(--safe-b) + 12px);
+    background:rgba(13,17,23,.96);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0}
+  .editor.open{transform:translate(-50%,0)}
+  .ed-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .ed-row .btn{flex:1;padding:0 8px;border-radius:12px;font-size:13.5px}
+  .editor select{flex:1;min-width:0;min-height:44px;border-radius:12px;border:1px solid var(--line);
+    background:var(--ink-2);color:var(--bone);font:inherit;font-style:italic;font-size:16px;padding:0 10px}
+  .ed-read{font-size:13px;color:var(--mute);margin:0 2px 8px;min-height:18px;line-height:1.35}
+  .ed-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+  .ed-pad .btn{padding:0;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .editor textarea{width:100%;height:70px;resize:none;border-radius:10px;border:1px solid var(--line);
+    background:var(--ink-2);color:var(--bone);font:inherit;font-style:italic;font-size:12px;padding:6px 8px;margin-top:8px}
+
+  /* anatomik düzlemler */
+  .pl{position:absolute;left:0;top:0;display:none;white-space:nowrap;pointer-events:none;will-change:transform;
+    padding:3px 9px;border:1.5px solid var(--c);border-radius:8px;background:rgba(13,17,23,.86);font-size:12.5px}
+  .pl small{color:var(--mute);font-size:11.5px}
+  .tzwrap{position:fixed;z-index:6;right:calc(var(--safe-r) + 10px);top:50%;transform:translateY(-50%);
+    height:min(46vh,320px);display:none;padding:8px 2px;border-radius:18px;background:rgba(22,28,38,.84);border:1px solid var(--line)}
+  .tzwrap.on{display:block}
+  .tzwrap input{writing-mode:vertical-lr;direction:rtl;height:100%;width:36px;margin:0;accent-color:#ff8a1f;touch-action:none}
+  .testing .tzwrap,.editing .tzwrap{display:none!important}
+  .topact{position:fixed;z-index:6;top:calc(var(--safe-t) + 14px);right:calc(var(--safe-r) + 12px);
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .btn.test{min-height:46px;padding:0 20px;font-weight:700;letter-spacing:.05em;border-color:var(--bone)}
+  .btn.sm{min-height:36px;padding:0 14px;font-size:12.5px;border-radius:18px}
+  .pside{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .pside .sub{display:none;flex-direction:column;align-items:flex-end;gap:6px}
+  .pside.open .sub{display:flex}
+  .pside .btn[aria-expanded="true"]{border-color:var(--bone)}
+  .testing .topact,.editing .topact{display:none!important}
+
+  /* test modu */
+  .testing .bar,.testing .head,.testing .card,.testing .panel,.testing .editor{display:none!important}
+  .testing .mk{visibility:hidden}
+  .testing .mk.reveal:not(.off){visibility:visible}
+  .testing .dot{pointer-events:none}
+  .qtop{position:fixed;z-index:9;top:calc(var(--safe-t) + 12px);left:calc(var(--safe-l) + 12px);right:calc(var(--safe-r) + 12px);
+    display:none;justify-content:space-between;align-items:center;pointer-events:none}
+  .testing .qtop{display:flex}
+  .qtop .btn{pointer-events:auto;padding:0 20px}
+  #qprog{font-size:16px;font-weight:700;padding:9px 16px;border-radius:20px;background:rgba(22,28,38,.84);border:1px solid var(--line)}
+  .qcard{position:fixed;z-index:9;left:50%;bottom:calc(var(--safe-b) + 28px);transform:translateX(-50%);
+    width:min(78vw,300px);padding:14px 16px;text-align:center;border-radius:14px;border:2px solid var(--c,#fff);
+    background:rgba(13,17,23,.95);box-shadow:0 8px 26px rgba(0,0,0,.5);cursor:grab;
+    touch-action:none;user-select:none;-webkit-user-select:none;transition:opacity .25s}
+  .qcard.hide{opacity:0;pointer-events:none}
+  .qcard .lat{font-size:24px;font-weight:700;line-height:1.15}
+  .qcard .tr{color:var(--mute);font-size:14px;margin-top:2px}
+  .qcard .hint{color:var(--mute);font-size:11.5px;margin-top:8px;opacity:.8}
+  .qcard.drag{bottom:auto;transform:translate(-50%,calc(-100% - 24px));width:min(60vw,230px);cursor:grabbing;transition:none}
+  .qcard.drag .hint{display:none}
+  .qcard.drag::before{content:"";position:absolute;left:50%;top:100%;width:2px;height:16px;margin-left:-1px;background:var(--c,#fff)}
+  .qcard.drag::after{content:"";position:absolute;left:50%;top:calc(100% + 12px);width:10px;height:10px;margin-left:-5px;
+    border-radius:50%;background:var(--c,#fff);box-shadow:0 0 0 2px #fff}
+  .qmsg{position:fixed;z-index:9;left:50%;bottom:calc(var(--safe-b) + 28px);transform:translateX(-50%);
+    width:min(88vw,380px);padding:14px 16px;text-align:center;border-radius:14px;border:2px solid var(--mute);
+    background:rgba(13,17,23,.95);font-size:16px;line-height:1.35;opacity:0;pointer-events:none;transition:opacity .2s}
+  .qmsg.show{opacity:1}
+  .qmsg.ok{border-color:#2fd07a}
+  .qmsg.bad{border-color:#ff5a7a}
+  .qend{position:fixed;z-index:10;left:50%;bottom:calc(var(--safe-b) + 28px);transform:translateX(-50%);
+    width:min(90vw,380px);padding:18px;text-align:center;border-radius:16px;border:2px solid #2fd07a;
+    background:rgba(13,17,23,.96);opacity:0;pointer-events:none;transition:opacity .25s}
+  .qend.show{opacity:1;pointer-events:auto}
+  .qend .qt{font-size:24px;font-weight:700}
+  .qend .qs{color:var(--mute);font-size:14px;margin:6px 0 14px;line-height:1.5}
+  .qend .row{display:flex;gap:8px}
+  .qend .btn{flex:1}
+
+  /* model seçici ve terim notları */
+  [hidden]{display:none!important}
+  .mswitch{position:fixed;z-index:6;top:calc(var(--safe-t) + 14px);left:50%;transform:translateX(-50%);display:flex;gap:4px;
+    padding:4px;border-radius:22px;background:rgba(22,28,38,.84);border:1px solid var(--line);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .mswitch .btn{min-height:34px;padding:0 16px;font-size:13px;border:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .mswitch .btn[aria-pressed="true"]{background:var(--bone);color:var(--ink)}
+  .testing .mswitch,.editing .mswitch{display:none!important}
+  @media (max-width:640px){ .mswitch{top:calc(var(--safe-t) + 78px)} }
+  .bone-mode .pside,.bone-mode .tzwrap{display:none!important}
+  .mk.behind .dot{opacity:.4}
+  .leaders{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .leaders line{stroke-linecap:round}
+  .compact .tag{font-size:11px;padding:1px 6px;border-radius:6px}
+  .compact .tag small{display:none}
+  .card .nt{color:var(--bone);opacity:.85;font-size:12.5px;margin-top:6px;line-height:1.4}
+  .card .nt:empty{display:none}
+  .panel #gloss{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
+  .panel #gloss h3{margin:0 0 8px;font-size:16px}
+  .gl{margin:0 0 9px;font-size:13px;line-height:1.35}
+  .gl b{display:block;font-size:14px}
+  .gl span{color:var(--mute)}
+
+  /* test zorluk seçimi ve soru panelleri */
+  .qmenu{position:fixed;inset:0;z-index:16;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:rgba(8,11,16,.7);opacity:0;pointer-events:none;transition:opacity .25s}
+  .qmenu.show{opacity:1;pointer-events:auto}
+  .qmenu .box{width:min(92vw,380px);padding:20px;border-radius:16px;border:1.5px solid var(--bone);background:rgba(13,17,23,.97);text-align:center}
+  .qmenu h3{margin:0;font-size:22px;font-weight:700}
+  .qmenu .sub{margin:2px 0 14px;color:var(--mute);font-size:14px}
+  .qmenu .lv{display:block;width:100%;margin:0 0 10px;padding:12px 14px;text-align:left;border-radius:12px;cursor:pointer;
+    border:1px solid var(--line);background:var(--ink-2);min-height:56px}
+  .qmenu .lv:hover{border-color:var(--bone)}
+  .qmenu .lv b{display:block;font-size:17px}
+  .qmenu .lv span{display:block;color:var(--mute);font-size:13px;margin-top:2px}
+  .qpanel{position:fixed;z-index:9;left:50%;bottom:calc(var(--safe-b) + 16px);transform:translateX(-50%);
+    width:min(94vw,520px);max-height:55vh;overflow:auto;padding:14px;border-radius:16px;border:1.5px solid var(--bone);
+    background:rgba(13,17,23,.96);opacity:0;pointer-events:none;transition:opacity .2s}
+  .qpanel.show{opacity:1;pointer-events:auto}
+  .qpanel .qh{color:var(--mute);font-size:13px;margin-bottom:8px;text-align:center}
+  .qpanel .tfq{font-size:21px;text-align:center;margin:6px 0 14px;line-height:1.3;word-break:break-word}
+  .qpanel .tfq b{font-weight:700}
+  .qpanel .row{display:flex;gap:8px}
+  .qpanel .row .btn{flex:1}
+  .qpanel input{width:100%;min-height:46px;margin-bottom:10px;border-radius:12px;border:1px solid var(--line);
+    background:var(--ink-2);color:var(--bone);font:inherit;font-style:italic;font-size:16px;padding:0 12px}
+  .qpanel input:focus{outline:2px solid var(--bone)}
+  .mcols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mcols>div{display:flex;flex-direction:column;gap:6px}
+  .mb{min-height:44px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--ink-2);
+    font-size:13.5px;line-height:1.25;cursor:pointer;word-break:break-word}
+  .mb.sel{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+  .mb.ok{border-color:#2fd07a;color:#2fd07a;opacity:.55;pointer-events:none}
+  .mb.bad{border-color:#ff5a7a;background:rgba(255,90,122,.25)}
+  .qmsg.top{bottom:auto;top:calc(var(--safe-t) + 64px)}
+  .mk.quizq .tag{display:none}
+
+  /* giriş yönergesi */
+  .intro{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:rgba(8,11,16,.62);opacity:0;pointer-events:none;transition:opacity .35s}
+  .intro.show{opacity:1;pointer-events:auto}
+  .intro .box{width:min(92vw,360px);padding:20px 20px 16px;border-radius:16px;border:1.5px solid var(--bone);
+    background:rgba(13,17,23,.96);text-align:center}
+  .intro h3{margin:0 0 12px;font-size:20px;font-weight:700}
+  .intro p{margin:0 0 10px;font-size:15px;line-height:1.45}
+  .intro p b{font-weight:700}
+  .intro .btn{margin-top:6px;min-width:130px}
+
+  /* loader / error */
+  .loader{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:var(--ink);transition:opacity .5s;padding:24px;text-align:center}
+  .loader.done{opacity:0;pointer-events:none}
+  .loader .name{font-size:28px;font-weight:700}
+  .track{width:min(70vw,260px);height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+  .track span{display:block;height:100%;width:0;background:var(--bone);transition:width .2s}
+  .loader .msg{color:var(--mute);font-size:14px;max-width:440px;line-height:1.5}
+  .loader .msg.err{color:#e8a0a0}
+
+  @media (min-width:900px){
+    .bar{bottom:20px}
+    .card{bottom:84px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="signature">Product of OLEG ROMANOVICH BERDII</div>
+
+<div id="stage"></div>
+<div id="markers"></div>
+
+<div class="head">
+  <h1>Anatomia</h1>
+  <p>Anatomik terimler</p>
+</div>
+
+<div class="card" id="card" role="status">
+  <div class="lat" id="cardLat"></div>
+  <div class="tr" id="cardTr"></div>
+  <div class="nt" id="cardNt"></div>
+  <button class="x" id="cardX" aria-label="Kapat">&times;</button>
+</div>
+
+<div class="bar">
+  <button class="btn" id="bLabels" aria-pressed="false">Etiketler</button>
+  <button class="btn" id="bList">Bölgeler</button>
+  <button class="btn" id="bEdit">Düzenle</button>
+</div>
+
+<aside class="panel" id="panel" aria-label="Vücut bölgeleri">
+  <h2>Bölgeler <button id="pClose" aria-label="Kapat">&times;</button></h2>
+  <div id="list"></div>
+  <div id="gloss" hidden>
+    <h3>Genel terimler</h3>
+    <div id="glossList"></div>
+  </div>
+  <button class="btn" id="bFlip" style="margin-top:14px;width:100%">Model yönü ters ise çevir</button>
+  <button class="btn" id="bFlipV" hidden style="margin-top:8px;width:100%">Baş aşağıdaysa dikey çevir</button>
+</aside>
+
+<section class="editor" id="editor" aria-label="Konum düzenleyici">
+  <div class="ed-row">
+    <select id="edSel" aria-label="Bölge"></select>
+    <button class="btn" id="edClose" style="flex:none;min-width:84px">Kapat</button>
+  </div>
+  <div class="ed-read" id="edRead"></div>
+  <div class="ed-pad">
+    <button class="btn" data-n="-1,0">Sol</button>
+    <button class="btn" data-n="1,0">Sağ</button>
+    <button class="btn" data-n="0,1">Yukarı</button>
+    <button class="btn" data-n="0,-1">Aşağı</button>
+  </div>
+  <div class="ed-row"><button class="btn" id="edSwap" hidden>Diğer kemiğe taşı</button></div>
+  <div class="ed-row" style="margin-bottom:0">
+    <button class="btn" id="edStep">Adım: ince</button>
+    <button class="btn" id="edCopy">Kopyala</button>
+    <button class="btn" id="edReset">Tümünü sıfırla</button>
+  </div>
+  <textarea id="edOut" readonly hidden></textarea>
+</section>
+
+<div class="mswitch" id="mswitch" role="group" aria-label="Model seç">
+  <button class="btn" data-m="body" aria-pressed="true">Vücut</button>
+  <button class="btn" data-m="humerus" aria-pressed="false">Humerus</button>
+</div>
+
+<div class="topact" id="topact">
+  <button class="btn test" id="bQuiz">KENDİNİ TEST ET</button>
+  <div class="pside" id="pside">
+    <button class="btn sm" id="bPlanes" aria-expanded="false">Düzlem seç</button>
+    <div class="sub">
+      <button class="btn sm" data-k="sag" aria-pressed="false">Sagittal</button>
+      <button class="btn sm" data-k="fro" aria-pressed="false">Frontal</button>
+      <button class="btn sm" data-k="tra" aria-pressed="false">Transversal</button>
+    </div>
+  </div>
+</div>
+<div class="tzwrap" id="tzwrap"><input type="range" id="tzRange" min="0" max="2" step="0.005" aria-label="Transvers düzlem yüksekliği"></div>
+<div class="qmenu" id="qmenu" role="dialog" aria-label="Zorluk seç">
+  <div class="box">
+    <h3>Kendini test et</h3>
+    <p class="sub">Zorluk seç</p>
+    <button class="lv" data-lv="easy"><b>Kolay</b><span>Kartı 3B model üzerinde doğru yere koy</span></button>
+    <button class="lv" data-lv="medium"><b>Orta</b><span>Eşleştirme ve doğru / yanlış soruları</span></button>
+    <button class="lv" data-lv="hard"><b>Zor</b><span>Cevabı kendin yaz</span></button>
+    <button class="btn" id="qmCancel">Vazgeç</button>
+  </div>
+</div>
+<div class="qpanel" id="qpanel">
+  <div id="qMatch" hidden>
+    <div class="qh">Eşleştir: bir Latince terimi ve Türkçe karşılığını seç</div>
+    <div class="mcols"><div id="mL"></div><div id="mR"></div></div>
+  </div>
+  <div id="qTF" hidden>
+    <div class="qh">Doğru mu, yanlış mı?</div>
+    <div class="tfq" id="tfQ"></div>
+    <div class="row"><button class="btn" id="tfTrue">Doğru</button><button class="btn" id="tfFalse">Yanlış</button></div>
+  </div>
+  <div id="qType" hidden>
+    <div class="qh" id="tyH"></div>
+    <div class="tfq" id="tyQ"></div>
+    <input id="tyIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Latince adını yaz">
+    <div class="row"><button class="btn" id="tyGive">Bilmiyorum</button><button class="btn" id="tySend">Kontrol et</button></div>
+  </div>
+</div>
+<div class="qtop"><span id="qprog"></span><button class="btn" id="qExit">Çık</button></div>
+<div class="qmsg" id="qmsg" role="status"></div>
+<div class="qcard hide" id="qcard">
+  <div class="lat" id="qLat"></div>
+  <div class="hint">Kartı modelin üzerine sürükleyip bırakın</div>
+</div>
+<div class="qend" id="qend">
+  <div class="qt">Tebrikler!</div>
+  <div class="qs" id="qStats"></div>
+  <div class="row"><button class="btn" id="qAgain">Tekrar</button><button class="btn" id="qMode">Mod seç</button><button class="btn" id="qDone">Çık</button></div>
+</div>
+
+<div class="intro" id="intro" role="dialog" aria-label="Kullanım">
+  <div class="box">
+    <h3>Nasıl kullanılır?</h3>
+    <div id="introText"></div>
+    <button class="btn" id="introOk">Anladım</button>
+  </div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="name">Anatomia</div>
+  <div class="track"><span id="bar"></span></div>
+  <div class="msg" id="msg">Model yükleniyor</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+
+/*
+  Bölge konumları: model boyu 2 birime normalize edilir (ayaktan başın tepesine).
+  y : boy oranı (0 = ayak tabanı, 1 = baş tepesi)
+  x : boy oranı cinsinden yanal konum, negatif = kişinin sağı
+  side: 'front' ön yüzeyden, 'back' arka yüzeyden ışın atılır.
+  Konumlar yaklaşık değerlerdir; modelinizde kayma olursa yalnızca bu sayıları değiştirin.
+*/
+const BODY_REGIONS = [
+  { latin:'Caput',        tr:'Baş',        color:'#3b8cff', side:'front', x: 0.000, y:0.945 },
+  { latin:'Collum',       tr:'Boyun',      color:'#2fd07a', side:'front', x: 0.000, y:0.850 },
+  { latin:'Acromion',     tr:'Akromion',   color:'#b57cff', side:'front', x:-0.115, y:0.805 },
+  { latin:'Thorax',       tr:'Göğüs',      color:'#ff8a1f', side:'front', x:-0.030, y:0.735 },
+  { latin:'Brachium',     tr:'Kol',        color:'#ff5a7a', side:'front', x:-0.150, y:0.690 },
+  { latin:'Cubitus',      tr:'Dirsek',     color:'#1fc7c7', side:'front', x:-0.165, y:0.625 },
+  { latin:'Antebrachium', tr:'Önkol',      color:'#e8c43a', side:'front', x:-0.185, y:0.555 },
+  { latin:'Manus',        tr:'El',         color:'#ff4d4d', side:'front', x:-0.210, y:0.485 },
+  { latin:'Palma',        tr:'Avuç içi',   color:'#4aa3ff', side:'front', x:-0.215, y:0.450 },
+  { latin:'Digitus manus',tr:'Parmak (el)',color:'#a06bff', side:'front', x:-0.225, y:0.400 },
+  { latin:'Abdomen',      tr:'Karın',      color:'#1ab3b3', side:'front', x: 0.000, y:0.590 },
+  { latin:'Pelvis',       tr:'Leğen kemiği',color:'#9a7cff',side:'front', x: 0.035, y:0.485 },
+  { latin:'Femur',        tr:'Uyluk',      color:'#e0405e', side:'front', x:-0.055, y:0.370 },
+  { latin:'Genu',         tr:'Diz',        color:'#2fd07a', side:'front', x:-0.055, y:0.290 },
+  { latin:'Crus',         tr:'Bacak',      color:'#e8c43a', side:'front', x:-0.055, y:0.205 },
+  { latin:'Tarsus',       tr:'Ayak bileği',color:'#3b8cff', side:'front', x:-0.055, y:0.100 },
+  { latin:'Pes',          tr:'Ayak',       color:'#a06bff', side:'front', x:-0.060, y:0.040 },
+  { latin:'Digitus pedis',tr:'Parmak (ayak)',color:'#ff5ab8',side:'front', x:-0.065, y:0.012 },
+  { latin:'Scapula',      tr:'Kürek kemiği',color:'#3b8cff',side:'back',  x:-0.060, y:0.770 },
+  { latin:'Triceps brachii',tr:'Triceps',  color:'#ff5a7a', side:'back',  x:-0.150, y:0.690 },
+  { latin:'Vertebrae',    tr:'Omurga',     color:'#2fd07a', side:'back',  x: 0.000, y:0.640 },
+  { latin:'Gluteus',      tr:'Kalça',      color:'#9a7cff', side:'back',  x:-0.060, y:0.470 },
+  { latin:'Omos',         tr:'Omuz',       color:'#ffb347', side:'front', x:-0.130, y:0.780 },
+  { latin:'Planta',       tr:'Ayak tabanı',color:'#ff7ad9', side:'back',  x:-0.060, y:0.015 },
+  { latin:'Dorsum',       tr:'Sırt',       color:'#5ee0a0', side:'back',  x: 0.000, y:0.700 },
+  { latin:'Truncus',      tr:'Gövde',      color:'#6fa8ff', side:'front', x: 0.000, y:0.660 },
+];
+
+/* Varsayılan konumlar (düzenleyiciden dışa aktarılan değerler).
+   Kullanıcı düzenlemesi (localStorage) bunların üzerine yazar. */
+const DEFAULTS = {
+  'Caput':{p:[0.103,1.873,0.652],n:[0.954,0.284,0.099]},
+  'Collum':{p:[0.029,1.652,0.653],n:[0.987,-0.156,-0.04]},
+  'Acromion':{p:[-0.119,1.614,0.834],n:[-0.606,0.611,0.509]},
+  'Thorax':{p:[0.069,1.51,0.669],n:[0.871,0.33,-0.363]},
+  'Brachium':{p:[-0.01,1.387,0.917],n:[0.472,0.204,0.858]},
+  'Cubitus':{p:[0.086,1.238,0.147],n:[0.758,0.329,0.563]},
+  'Antebrachium':{p:[0.005,1.152,0.971],n:[0.992,0.125,0.01]},
+  'Manus':{p:[0.099,0.917,0.298],n:[0.62,-0.09,0.78]},
+  'Palma':{p:[0.045,0.871,0.322],n:[0.882,0.077,0.465]},
+  'Digitus manus':{p:[-0.346,0.814,-0.993],n:[-0.518,-0.12,0.847]},
+  'Abdomen':{p:[0.11,1.257,0.664],n:[0.988,-0.061,-0.141]},
+  'Pelvis':{p:[0.118,1.033,0.654],n:[0.984,0.154,-0.096]},
+  'Femur':{p:[0.073,0.777,0.83],n:[0.885,-0.219,0.41]},
+  'Genu':{p:[0.03,0.568,0.803],n:[0.945,-0.207,0.253]},
+  'Crus':{p:[-0.012,0.362,0.829],n:[0.986,-0.149,0.08]},
+  'Tarsus':{p:[-0.005,0.124,0.825],n:[0.757,0.577,0.306]},
+  'Pes':{p:[0.125,0.039,0.877],n:[0.631,0.776,0.029]},
+  'Digitus pedis':{p:[0.185,0.018,0.831],n:[1,-0.021,0.018]},
+  'Scapula':{p:[-0.06,1.544,-0.937],n:[-0.062,0.631,-0.774]},
+  'Triceps brachii':{p:[0.129,1.402,-0.415],n:[0.835,0.004,-0.55]},
+  'Vertebrae':{p:[0.001,1.281,-0.995],n:[0.208,0.119,-0.971]},
+  'Gluteus':{p:[0.138,1.011,-0.157],n:[0.995,-0.096,0.032]},
+  'Omos':{p:[0.05,1.533,0.124],n:[0.227,0.31,0.923]},
+  'Planta':{p:[0.134,0.034,-0.016],n:[0.994,0.091,-0.054]},
+  'Dorsum':{p:[0.142,1.463,-0.156],n:[0.964,0.085,0.252]},
+  'Truncus':{p:[0.039,1.565,0.737],n:[0.756,0.592,0.279]}
+};
+/* ---------- Genel osteoloji terimleri (ders görselleri) ---------- */
+const GLOSS_IMG = [
+  { k:'Condylus',     label:'Condylus (kondil)',     tr:'Yumruk şeklinde çıkıntı' },
+  { k:'Tuberculum',   label:'Tuberculum',            tr:'Tümsekcik' },
+  { k:'Trochanter',   label:'Trochanter',            tr:'Büyük künt çıkıntı' },
+  { k:'Malleol',      label:'Malleol',               tr:'Çekiç gibi çıkıntı' },
+  { k:'Fissura',      label:'Fissura',               tr:'Yarık' },
+  { k:'Foramen',      label:'Foramen',               tr:'Delik' },
+  { k:'Fossa',        label:'Fossa ve fovea',        tr:'Çukur' },
+  { k:'Incisura',     label:'Incisura',              tr:'Çentik' },
+  { k:'Crista',       label:'Linea ve crista',       tr:'Çizgi ve ibik şeklinde çizgilenme için kullanılır' },
+  { k:'Sulcus',       label:'Sulcus',                tr:'Oluk' },
+  { k:'Processus',    label:'Processus',             tr:'Çıkıntı' },
+  { k:'Canalis',      label:'Canalis',               tr:'Kanal' },
+  { k:'Spina',        label:'Spina',                 tr:'Diken gibi çıkıntı' },
+  { k:'Cavum',        label:'Cavum (Cavitas)',       tr:'Boşluk' },
+  { k:'Longitudinal', label:'Longitudinal',          tr:'Uzunlamasına' },
+  { k:'majus',        label:'Major (majus, magnum)', tr:'Büyük' },
+  { k:'minus',        label:'Minor (minus)',         tr:'Küçük' },
+];
+const GLOSS_ALL = {
+  Caput:'Baş', Collum:'Boyun', Corpus:'Gövde', Margo:'Kenar', Facies:'Yüz', Tuberositas:'Pürüz (kaba çıkıntı)',
+  Epi:'Üzerinde', Capitulum:'Küçük baş', Trochlea:'Makara',
+  lateralis:'Dış (yan tarafta)', medialis:'İç (ortaya yakın)', anterior:'Ön', posterior:'Arka'
+};
+GLOSS_IMG.forEach(g => { GLOSS_ALL[g.k] = g.tr; });
+/* Plakadaki yerleşim: soldaki etiketler SOL kemikte (z>0), sağdaki etiketler SAĞ kemikte (z<0). */
+const RIGHT_ONLY = new Set(['Corpus humeri','Sulcus nervi radialis','Facies posterior','Crista supraepicondylaris lateralis',
+  'Crista supraepicondylaris medialis','Fossa olecrani','Sulcus nervi ulnaris']);
+function boneOf(r){
+  if (/\(arka\)$/.test(r.latin)) return 'R';
+  if (/\(ön\)$/.test(r.latin)) return 'L';
+  return RIGHT_ONLY.has(r.latin) ? 'R' : 'L';
+}
+function termNote(r){ return (r.t || []).map(k => k + ': ' + (GLOSS_ALL[k] || '')).join('  ·  '); }
+
+/* ---------- Humerus bölgeleri ----------
+   Model boyu 2 birime normalize edilir (distal uç y=0, proksimal uç y=2).
+   Konumlar YAKLAŞIKTIR; düzenle moduyla sürükleyip yerleştirin ve "Kopyala" ile dışa aktarın. */
+const HUMERUS_REGIONS = [
+  { latin:'Caput humeri (ön)',             tr:'Humerus başı',               color:'#3b8cff', side:'front', x:-0.08, y:0.965, t:['Caput'] },
+  { latin:'Caput humeri (arka)',             tr:'Humerus başı',               color:'#3b8cff', side:'back', x:-0.08, y:0.965, t:['Caput'] },
+  { latin:'Collum anatomicum (ön)',        tr:'Anatomik boyun',             color:'#2fd07a', side:'front', x:-0.05, y:0.925, t:['Collum'] },
+  { latin:'Collum anatomicum (arka)',        tr:'Anatomik boyun',             color:'#2fd07a', side:'back', x:-0.05, y:0.925, t:['Collum'] },
+  { latin:'Tuberculum majus (ön)',         tr:'Büyük tümsekcik',            color:'#ff8a1f', side:'front', x: 0.08, y:0.945, t:['Tuberculum','majus'] },
+  { latin:'Tuberculum majus (arka)',         tr:'Büyük tümsekcik',            color:'#ff8a1f', side:'back', x: 0.08, y:0.945, t:['Tuberculum','majus'] },
+  { latin:'Tuberculum minus',         tr:'Küçük tümsekcik',            color:'#b57cff', side:'front', x: 0.00, y:0.935, t:['Tuberculum','minus'] },
+  { latin:'Sulcus intertubercularis', tr:'Tümsekcikler arası oluk',    color:'#1fc7c7', side:'front', x: 0.04, y:0.910, t:['Sulcus'] },
+  { latin:'Collum chirurgicum (ön)',       tr:'Cerrahi boyun',              color:'#e8c43a', side:'front', x: 0.00, y:0.860, t:['Collum'] },
+  { latin:'Collum chirurgicum (arka)',       tr:'Cerrahi boyun',              color:'#e8c43a', side:'back', x: 0.00, y:0.860, t:['Collum'] },
+  { latin:'Crista tuberculi majoris', tr:'Büyük tümsekcik ibiği',      color:'#ff5a7a', side:'front', x: 0.04, y:0.800, t:['Crista','Tuberculum','majus'] },
+  { latin:'Crista tuberculi minoris', tr:'Küçük tümsekcik ibiği',      color:'#4aa3ff', side:'front', x:-0.02, y:0.780, t:['Crista','Tuberculum','minus'] },
+  { latin:'Corpus humeri',            tr:'Humerus gövdesi',            color:'#a06bff', side:'back', x: 0.00, y:0.620, t:['Corpus'] },
+  { latin:'Tuberositas deltoidea',    tr:'Deltoid pürüzü',             color:'#ff4d4d', side:'front', x: 0.04, y:0.560, t:['Tuberositas'] },
+  { latin:'Sulcus nervi radialis',    tr:'Radial sinir oluğu',         color:'#2fd07a', side:'back',  x: 0.02, y:0.520, t:['Sulcus'] },
+  { latin:'Facies posterior',         tr:'Arka yüz',                   color:'#9a7cff', side:'back',  x: 0.00, y:0.420, t:['Facies','posterior'] },
+  { latin:'Facies anterior lateralis',tr:'Ön-dış yüz',                 color:'#ff8a1f', side:'front', x: 0.04, y:0.340, t:['Facies','anterior','lateralis'] },
+  { latin:'Facies anterior medialis', tr:'Ön-iç yüz',                  color:'#1ab3b3', side:'front', x:-0.04, y:0.340, t:['Facies','anterior','medialis'] },
+  { latin:'Margo lateralis',          tr:'Dış kenar',                  color:'#e0405e', side:'front', x: 0.07, y:0.260, t:['Margo','lateralis'] },
+  { latin:'Margo medialis',           tr:'İç kenar',                   color:'#3b8cff', side:'front', x:-0.07, y:0.260, t:['Margo','medialis'] },
+  { latin:'Crista supracondylaris lateralis', tr:'Dış üst kondil ibiği', color:'#e8c43a', side:'front', x: 0.08, y:0.180, t:['Crista','Condylus','lateralis'] },
+  { latin:'Crista supracondylaris medialis',  tr:'İç üst kondil ibiği',  color:'#ff5ab8', side:'front', x:-0.08, y:0.180, t:['Crista','Condylus','medialis'] },
+  { latin:'Crista supraepicondylaris lateralis', tr:'Dış üst epikondil ibiği', color:'#1fc7c7', side:'back', x: 0.08, y:0.170, t:['Crista','Epi','Condylus','lateralis'] },
+  { latin:'Crista supraepicondylaris medialis',  tr:'İç üst epikondil ibiği',  color:'#ff8a1f', side:'back', x:-0.08, y:0.170, t:['Crista','Epi','Condylus','medialis'] },
+  { latin:'Fossa radialis',           tr:'Radial çukur',               color:'#2fd07a', side:'front', x: 0.04, y:0.120, t:['Fossa'] },
+  { latin:'Fossa coronoidea',         tr:'Koronoid çukur',             color:'#b57cff', side:'front', x:-0.02, y:0.100, t:['Fossa'] },
+  { latin:'Fossa olecrani',           tr:'Olekranon çukuru',           color:'#ff8a1f', side:'back',  x: 0.00, y:0.090, t:['Fossa'] },
+  { latin:'Sulcus nervi ulnaris',     tr:'Ulnar sinir oluğu',          color:'#1fc7c7', side:'back',  x:-0.07, y:0.050, t:['Sulcus'] },
+  { latin:'Epicondylus lateralis (ön)',    tr:'Dış epikondil',              color:'#ff5a7a', side:'front', x: 0.11, y:0.050, t:['Epi','Condylus','lateralis'] },
+  { latin:'Epicondylus lateralis (arka)',    tr:'Dış epikondil',              color:'#ff5a7a', side:'back', x: 0.11, y:0.050, t:['Epi','Condylus','lateralis'] },
+  { latin:'Epicondylus medialis (arka)',     tr:'İç epikondil',               color:'#4aa3ff', side:'back', x:-0.11, y:0.050, t:['Epi','Condylus','medialis'] },
+  { latin:'Epicondylus medialis (ön)',     tr:'İç epikondil',               color:'#4aa3ff', side:'front', x:-0.11, y:0.050, t:['Epi','Condylus','medialis'] },
+  { latin:'Capitulum humeri',         tr:'Humerus başçığı',            color:'#a06bff', side:'front', x: 0.06, y:0.025, t:['Capitulum'] },
+  { latin:'Trochlea humeri (arka)',          tr:'Humerus makarası',           color:'#e8c43a', side:'back', x:-0.03, y:0.025, t:['Trochlea'] },
+  { latin:'Trochlea humeri (ön)',          tr:'Humerus makarası',           color:'#e8c43a', side:'front', x:-0.03, y:0.025, t:['Trochlea'] },
+  { latin:'Condylus humeri',          tr:'Humerus kondili',            color:'#ff4d4d', side:'front', x: 0.00, y:0.010, t:['Condylus'] },
+];
+
+const HUMERUS_DEFAULTS = {
+  'Caput humeri (ön)':{p:[0.072,1.975,0.727],n:[0.286,0.901,0.326]},
+  'Caput humeri (arka)':{p:[0.17,1.951,-0.678],n:[0.622,0.741,-0.253]},
+  'Collum anatomicum (ön)':{p:[0.164,1.958,0.597],n:[0.533,0.73,-0.428]},
+  'Collum anatomicum (arka)':{p:[0.181,1.827,-0.643],n:[0.875,0.005,-0.485]},
+  'Tuberculum majus (ön)':{p:[0.146,1.907,0.528],n:[0.997,0.059,0.052]},
+  'Tuberculum majus (arka)':{p:[0.17,1.869,-0.514],n:[0.827,-0.24,0.508]},
+  'Tuberculum minus':{p:[0.22,1.833,0.62],n:[0.905,-0.04,0.423]},
+  'Sulcus intertubercularis':{p:[0.141,1.935,0.443],n:[0.736,0.538,-0.411]},
+  'Collum chirurgicum (ön)':{p:[0.076,1.694,0.558],n:[0.523,-0.225,-0.822]},
+  'Collum chirurgicum (arka)':{p:[0.111,1.699,-0.614],n:[0.813,-0.435,-0.386]},
+  'Crista tuberculi majoris':{p:[0.065,1.481,0.583],n:[0.984,-0.154,0.087]},
+  'Crista tuberculi minoris':{p:[0.074,1.414,0.642],n:[0.957,-0.005,0.289]},
+  'Corpus humeri':{p:[0.076,1.14,-0.599],n:[0.735,-0.02,0.678]},
+  'Tuberositas deltoidea':{p:[0.079,1.033,0.628],n:[0.978,0.035,0.206]},
+  'Sulcus nervi radialis':{p:[0.082,1.028,-0.639],n:[1,0.018,-0.019]},
+  'Facies posterior':{p:[0.061,0.627,-0.633],n:[0.887,-0.086,-0.454]},
+  'Facies anterior lateralis':{p:[-0.035,0.438,0.545],n:[0.413,0.124,-0.902]},
+  'Facies anterior medialis':{p:[0.063,0.407,0.623],n:[0.93,0.006,0.366]},
+  'Margo lateralis':{p:[-0.044,0.579,0.557],n:[0.295,0.095,-0.951]},
+  'Margo medialis':{p:[0.048,0.521,0.649],n:[0.755,-0.064,0.652]},
+  'Crista supracondylaris lateralis':{p:[-0.148,0.267,0.462],n:[-0.322,0.448,-0.834]},
+  'Crista supracondylaris medialis':{p:[-0.03,0.208,0.753],n:[0.15,0.671,0.726]},
+  'Crista supraepicondylaris lateralis':{p:[0.092,0.304,-0.483],n:[0.981,0.192,-0.001]},
+  'Crista supraepicondylaris medialis':{p:[-0.009,0.347,-0.679],n:[0.18,0.098,-0.979]},
+  'Fossa radialis':{p:[-0.009,0.183,0.505],n:[0.538,0.772,-0.34]},
+  'Fossa coronoidea':{p:[0.007,0.127,0.596],n:[0.379,0.9,0.214]},
+  'Fossa olecrani':{p:[-0.041,0.177,-0.578],n:[0.864,0.02,-0.503]},
+  'Sulcus nervi ulnaris':{p:[0.008,0.069,-0.702],n:[0.744,-0.185,-0.643]},
+  'Epicondylus lateralis (ön)':{p:[-0.126,0.202,0.415],n:[0.239,0.589,-0.772]},
+  'Epicondylus lateralis (arka)':{p:[0.124,0.149,-0.437],n:[0.949,-0.098,-0.298]},
+  'Epicondylus medialis (arka)':{p:[-0.04,0.153,-0.76],n:[0.802,0.366,-0.471]},
+  'Epicondylus medialis (ön)':{p:[0.024,0.135,0.77],n:[0.937,0.042,0.348]},
+  'Capitulum humeri':{p:[0.131,0.124,0.418],n:[0.779,0.241,-0.58]},
+  'Trochlea humeri (arka)':{p:[0.098,0.076,-0.583],n:[0.94,0.099,-0.326]},
+  'Trochlea humeri (ön)':{p:[0.106,0.067,0.571],n:[0.937,-0.329,0.12]},
+  'Condylus humeri':{p:[0.128,0.117,0.508],n:[0.797,0.464,-0.386]}
+};
+
+/* ---------- Modeller ---------- */
+const MODELS = {
+  body:    { file:'anatomymodel.glb', title:'Vücut',   kind:'body', regions:BODY_REGIONS,    defaults:DEFAULTS, store:'anatomia-pozisyon-v3', group:null, info:null, flipV:false },
+  humerus: { file:'humerus.glb',      title:'Humerus', kind:'bone', regions:HUMERUS_REGIONS, defaults:HUMERUS_DEFAULTS, store:'anatomia-humerus-v3',  group:null, info:null, flipV:false },
+};
+let curModel = 'body';
+const REGIONS = [];
+REGIONS.push(...BODY_REGIONS);
+function applyDefaults(){
+  const D = MODELS[curModel].defaults || {};
+  REGIONS.forEach(r => { const d = D[r.latin]; if (d){ r.p = d.p.slice(); r.n = d.n.slice(); } });
+}
+applyDefaults();
+
+/* ---------- renderer / scene ---------- */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x2a3040, 1.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 1.6); keyL.position.set(2.5, 4, 4); scene.add(keyL);
+const backL = new THREE.DirectionalLight(0xffffff, 1.2); backL.position.set(-2.5, 3, -4); scene.add(backL);
+const fillL = new THREE.DirectionalLight(0xbcd0ff, .5); fillL.position.set(-4, 1, 1); scene.add(fillL);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.screenSpacePanning = true;
+controls.minDistance = 0.35;
+controls.maxDistance = 9;
+controls.rotateSpeed = 0.9;
+controls.zoomSpeed = 1.0;
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
+/* ---------- state ---------- */
+const markersEl = document.getElementById('markers');
+const listEl = document.getElementById('list');
+let model = null;
+let facing = 1;               // modelin baktığı yön: +1 = +Z, -1 = -Z
+let tween = null;
+let activeIdx = -1;
+let modelInfo = { raw:null, norm:null };
+const markers = [];           // { el, region, pos, normal, left }
+
+/* ---------- helpers ---------- */
+function defaultView(side = 1){
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const t = Math.tan(fov / 2);
+  const dV = 1.25 / t;                         // dikey sığdırma (yükseklik ~2.5)
+  const dH = 1.2 / (camera.aspect * t);        // yatay sığdırma (genişlik ~2.4)
+  const d = Math.max(dV, dH);
+  return {
+    pos: new THREE.Vector3(0, 1.05, d * side * facing),
+    target: new THREE.Vector3(0, 1.0, 0)
+  };
+}
+
+function goTo(pos, target, ms = 800){
+  tween = {
+    t0: performance.now(), ms,
+    p0: camera.position.clone(), p1: pos,
+    t0v: controls.target.clone(), t1v: target
+  };
+}
+controls.addEventListener('start', () => { tween = null; });
+
+function resize(){
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+resize();
+
+/* ---------- build UI list ---------- */
+function buildList(){
+  listEl.innerHTML = '';
+  REGIONS.forEach((r, i) => {
+    const b = document.createElement('button');
+    b.className = 'item';
+    b.style.setProperty('--c', r.color);
+    b.innerHTML = `<i class="sw"></i><span><span class="l">${r.latin}</span><span class="t">${r.tr}</span></span>`;
+    b.addEventListener('click', () => { select(i, true); closePanel(); });
+    listEl.appendChild(b);
+    r.itemEl = b;
+  });
+}
+buildList();
+
+/* ---------- anchors ---------- */
+const raycaster = new THREE.Raycaster();
+
+function buildMarkers(){
+  markers.forEach(m => m.el.remove());
+  markers.length = 0;
+  model.updateMatrixWorld(true);
+
+  const offsets = [0];
+  for (let k = 1; k <= 8; k++){ offsets.push(k * 0.015, -k * 0.015); }
+
+  REGIONS.forEach((r, i) => {
+    const sideSign = (r.side === 'front' ? 1 : -1) * facing;   // ışının geldiği Z yönü
+    const xe = r.x * facing;
+    const y = r.y * 2;
+    let hit = null;
+
+    for (const o of (r.p ? [] : offsets)){
+      const ox = xe + o;
+      raycaster.set(new THREE.Vector3(ox, y, 6 * sideSign), new THREE.Vector3(0, 0, -sideSign));
+      const res = raycaster.intersectObject(model, true);
+      if (res.length){ hit = res[0]; break; }
+    }
+
+    let pos, normal;
+    if (r.p){
+      pos = new THREE.Vector3(...r.p); normal = new THREE.Vector3(...r.n);
+    } else if (hit){
+      normal = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0, 0, sideSign);
+      if (normal.dot(new THREE.Vector3(0, 0, sideSign)) < 0) normal.negate();
+      pos = hit.point.clone().addScaledVector(normal, 0.006);
+    } else {
+      pos = new THREE.Vector3(xe, y, 0);
+      normal = new THREE.Vector3(0, 0, sideSign);
+    }
+
+    const el = document.createElement('div');
+    el.className = 'mk';
+    el.style.setProperty('--c', r.color);
+    el.innerHTML = `<button class="dot" aria-label="${r.latin}"></button><span class="tag"><b>${r.latin}</b> <small>(${r.tr})</small></span>`;
+    const dot = el.querySelector('.dot');
+    dot.addEventListener('click', () => select(i, false));
+    dot.addEventListener('pointerdown', e => startDrag(e, i));
+    markersEl.appendChild(el);
+    markers.push({ el, region: r, pos, normal, left:false });
+  });
+  buildAxes();
+}
+
+/* ---------- selection ---------- */
+const card = document.getElementById('card');
+function select(i, focus){
+  activeIdx = i;
+  markers.forEach((m, k) => m.el.classList.toggle('active', k === i));
+  REGIONS.forEach((r, k) => r.itemEl.classList.toggle('active', k === i));
+  const r = REGIONS[i];
+  document.getElementById('cardLat').textContent = r.latin;
+  document.getElementById('cardTr').textContent = r.tr;
+  document.getElementById('cardNt').textContent = termNote(r);
+  card.style.setProperty('--c', r.color);
+  card.classList.add('open');
+  edSel.value = String(i);
+  updateRead();
+
+  if (focus && markers[i]){
+    const m = markers[i];
+    const dir = m.normal.clone(); dir.y *= 0.3; dir.normalize();
+    const dist = 0.9;
+    goTo(m.pos.clone().addScaledVector(dir, dist), m.pos.clone(), 900);
+  }
+}
+document.getElementById('cardX').addEventListener('click', () => {
+  card.classList.remove('open'); activeIdx = -1;
+  markers.forEach(m => m.el.classList.remove('active'));
+  REGIONS.forEach(r => r.itemEl.classList.remove('active'));
+});
+
+/* ---------- buttons ---------- */
+const panel = document.getElementById('panel');
+function closePanel(){ panel.classList.remove('open'); }
+document.getElementById('bList').addEventListener('click', () => panel.classList.toggle('open'));
+document.getElementById('pClose').addEventListener('click', closePanel);
+
+
+const bLabels = document.getElementById('bLabels');
+function setLabels(on){
+  bLabels.setAttribute('aria-pressed', String(on));
+  markersEl.classList.toggle('labels-on', on);
+}
+bLabels.addEventListener('click', () => setLabels(bLabels.getAttribute('aria-pressed') !== 'true'));
+setLabels(window.innerWidth >= 900);
+
+document.getElementById('bFlip').addEventListener('click', () => {
+  facing *= -1;
+  if (model){ buildMarkers(); save(); if (activeIdx >= 0) select(activeIdx, false); }
+  const v = defaultView(1); goTo(v.pos, v.target);
+  closePanel();
+});
+
+
+/* ---------- konum düzenleyici ---------- */
+const editor = document.getElementById('editor');
+const edSel = document.getElementById('edSel');
+const edRead = document.getElementById('edRead');
+const edOut = document.getElementById('edOut');
+let editing = false, dragIdx = -1, stepFine = true, prevLabels = false;
+
+function buildEdSel(){
+  edSel.innerHTML = '';
+  REGIONS.forEach((r, i) => {
+    const o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = r.latin + ' (' + r.tr + ')';
+    edSel.appendChild(o);
+  });
+}
+buildEdSel();
+edSel.addEventListener('change', () => select(+edSel.value, true));
+
+function loadSaved(){
+  try {
+    const s = JSON.parse(localStorage.getItem(MODELS[curModel].store) || 'null');
+    if (s && s.items){
+      REGIONS.forEach(r => { const it = s.items[r.latin]; if (it){ r.p = it.p; r.n = it.n; } });
+      if (typeof s.facing === 'number') facing = s.facing;
+      if (typeof s.flipV === 'boolean') MODELS[curModel].flipV = s.flipV;
+    }
+  } catch (e) {}
+}
+function save(){
+  try {
+    const items = {};
+    REGIONS.forEach(r => { if (r.p) items[r.latin] = { p:r.p, n:r.n }; });
+    localStorage.setItem(MODELS[curModel].store, JSON.stringify({ facing, flipV: !!MODELS[curModel].flipV, items }));
+  } catch (e) {}
+}
+
+function updateRead(msg){
+  if (msg){ edRead.textContent = msg; return; }
+  const m = markers[activeIdx];
+  if (!m){ edRead.textContent = 'Bir noktayı model üzerinde sürükleyin, ya da bölge seçip düğmelerle ince ayar yapın.'; return; }
+  const p = m.pos;
+  edRead.textContent = m.region.latin + ':  x ' + p.x.toFixed(3) + '   y ' + p.y.toFixed(3) + '   z ' + p.z.toFixed(3) + (m.region.p ? '   (düzenlendi)' : '') +
+    (MODELS[curModel].kind === 'bone' ? '   · olması gereken: ' + (boneOf(m.region) === 'L' ? 'sol' : 'sağ') + ' kemik' +
+      ((Math.sign(p.z) > 0) !== (boneOf(m.region) === 'L') ? ' (ŞU AN DİĞER KEMİKTE)' : '') : '');
+}
+
+function orient(hit, dir, nExplicit){
+  if (nExplicit){ const n0 = nExplicit.clone().normalize(); if (n0.dot(dir) > 0) n0.negate(); return n0; }
+  const n = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0, 0, -Math.sign(dir.z || -1));
+  if (n.dot(dir) > 0) n.negate();
+  return n.normalize();
+}
+function setPoint(i, point, normal){
+  const m = markers[i]; if (!m) return;
+  m.normal.copy(normal);
+  m.pos.copy(point).addScaledVector(normal, 0.006);
+  m.region.p = m.pos.toArray();
+  m.region.n = normal.toArray();
+  m.region.side = normal.z * facing >= 0 ? 'front' : 'back';
+  updateRead();
+}
+
+/* sürükleme */
+function startDrag(e, i){
+  if (!editing) return;
+  e.preventDefault(); e.stopPropagation();
+  dragIdx = i; tween = null;
+  select(i, false);
+  controls.enabled = false;
+  try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+}
+window.addEventListener('pointermove', e => {
+  if (dragIdx < 0 || !model) return;
+  const ndc = new THREE.Vector2(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObject(model, true);
+  if (hits.length) setPoint(dragIdx, hits[0].point, orient(hits[0], raycaster.ray.direction));
+  else {                                   // model dışına çıkınca en yakın yüzeye yapış: sınır yok
+    const h = nearestOnRay(raycaster.ray);
+    if (h) setPoint(dragIdx, h.point, orient({ face:null, object:model }, raycaster.ray.direction, h.normal));
+  }
+});
+function endDrag(){
+  if (dragIdx >= 0){ dragIdx = -1; controls.enabled = true; save(); }
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+/* düğmelerle ince ayar (ekran yönünde) */
+function nudge(sx, sy){
+  const m = markers[activeIdx]; if (!m || !model) return;
+  const dist = camera.position.distanceTo(m.pos);
+  const st = (stepFine ? 0.003 : 0.012) * dist;
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+  const target = m.pos.clone().addScaledVector(right, sx * st).addScaledVector(up, sy * st);
+  raycaster.set(camera.position.clone(), target.clone().sub(camera.position).normalize());
+  const hits = raycaster.intersectObject(model, true);
+  if (hits.length){
+    setPoint(activeIdx, hits[0].point, orient(hits[0], raycaster.ray.direction));
+  } else {
+    const h = nearestOnRay(raycaster.ray);
+    if (h) setPoint(activeIdx, h.point, orient({ face:null, object:model }, raycaster.ray.direction, h.normal));
+    else { m.pos.copy(target); m.region.p = m.pos.toArray(); updateRead(); }
+  }
+}
+let holdT = null, holdI = null;
+function stopHold(){ clearTimeout(holdT); clearInterval(holdI); holdT = holdI = null; save(); }
+editor.querySelectorAll('[data-n]').forEach(b => {
+  const [sx, sy] = b.dataset.n.split(',').map(Number);
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (activeIdx < 0){ updateRead('Önce bir bölge seçin.'); return; }
+    nudge(sx, sy);
+    holdT = setTimeout(() => { holdI = setInterval(() => nudge(sx, sy), 70); }, 350);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stopHold));
+});
+document.getElementById('edStep').addEventListener('click', e => {
+  stepFine = !stepFine;
+  e.currentTarget.textContent = 'Adım: ' + (stepFine ? 'ince' : 'normal');
+});
+
+/* dışa aktarma */
+const r3 = a => '[' + a.map(v => +v.toFixed(3)).join(',') + ']';
+function buildExport(){
+  const lines = markers.map(m => '  {"latin":"' + m.region.latin + '","p":' + r3(m.pos.toArray()) + ',"n":' + r3(m.normal.toArray()) + '}');
+  return '{"model":"' + curModel + '","facing":' + facing + ',"flipV":' + (!!MODELS[curModel].flipV) + ',"modelSize":' + (modelInfo.norm ? r3(modelInfo.norm) : 'null') +
+         ',"modelRawSize":' + (modelInfo.raw ? r3(modelInfo.raw) : 'null') + ',"regions":[\n' + lines.join(',\n') + '\n]}';
+}
+document.getElementById('edCopy').addEventListener('click', async () => {
+  const text = buildExport();
+  edOut.value = text;
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+  if (!ok){
+    edOut.hidden = false; edOut.focus(); edOut.select();
+    try { ok = document.execCommand('copy'); } catch (e) {}
+  }
+  updateRead(ok ? 'Kopyalandı. Şimdi sohbete yapıştırabilirsiniz.' : 'Otomatik kopyalama olmadı. Aşağıdaki metni seçip kopyalayın.');
+  if (ok){ edOut.hidden = true; setTimeout(() => updateRead(), 2500); }
+});
+document.getElementById('edReset').addEventListener('click', () => {
+  if (!confirm('Tüm düzenlemeler silinsin mi?')) return;
+  REGIONS.forEach(r => { delete r.p; delete r.n; });
+  applyDefaults();
+  try { localStorage.removeItem(MODELS[curModel].store); } catch (e) {}
+  const a = activeIdx;
+  buildMarkers();
+  if (a >= 0) select(a, false);
+});
+
+/* düzenleme modu */
+function setEditing(on){
+  editing = on;
+  document.body.classList.toggle('editing', on);
+  editor.classList.toggle('open', on);
+  if (on){
+    prevLabels = markersEl.classList.contains('labels-on');
+    setLabels(true);
+    card.classList.remove('open');
+    closePanel();
+    updateRead();
+  } else {
+    setLabels(prevLabels);
+    endDrag();
+    buildAxes();
+  }
+}
+document.getElementById('bEdit').addEventListener('click', () => setEditing(true));
+document.getElementById('edClose').addEventListener('click', () => setEditing(false));
+
+/* ---------- kendini test et modu ---------- */
+/* Ayarlar: tolerans dünya birimindedir (model boyu = 2). Komşu bölgeye yakınlığa göre otomatik daralır. */
+const QUIZ = { boneMin:0.05, boneMax:0.14, tolMin:0.11, tolMax:0.26, tolK:0.7, requeueAfter:3, okMs:1100, wrongLookMs:1800, travelMs:1000 };
+const quiz = { mode:'easy', active:false, busy:false, queue:[], cur:-1, solved:0, attempts:0, wrong:0, total:0, run:0, tol:[], drag:false };
+const qcard = document.getElementById('qcard');
+const qLat = document.getElementById('qLat');
+const qmsg = document.getElementById('qmsg');
+const qend = document.getElementById('qend');
+const qprog = document.getElementById('qprog');
+let qmsgT = null;
+
+function showMsg(text, kind, ms){
+  qmsg.textContent = text;
+  qmsg.className = 'qmsg show ' + kind + (quiz.mode !== 'easy' ? ' top' : '');
+  clearTimeout(qmsgT);
+  if (ms) qmsgT = setTimeout(hideMsg, ms);
+}
+function hideMsg(){ clearTimeout(qmsgT); qmsg.classList.remove('show'); }
+function resetCardPos(){ qcard.classList.remove('drag'); qcard.style.left = ''; qcard.style.top = ''; }
+function updateProg(){ qprog.textContent = 'Doğru: ' + quiz.solved + ' / ' + quiz.total; }
+/* Çift (sağ/sol) bölgeler: karşı taraftaki karşılığı da doğru sayılır.
+   Orta çizgi, ortadaki bölgelerin (baş, boyun, göğüs...) konumundan otomatik bulunur. */
+const PAIRED = new Set(['Acromion','Omos','Brachium','Cubitus','Antebrachium','Manus','Palma','Digitus manus',
+  'Femur','Genu','Crus','Tarsus','Pes','Digitus pedis','Planta','Scapula','Triceps brachii','Gluteus']);
+const MIDLINE = ['Caput','Collum','Thorax','Abdomen','Pelvis'];
+
+function computeMirrors(){
+  const mid = markers.filter(m => MIDLINE.includes(m.region.latin));
+  if (!mid.length) return markers.map(() => null);
+  const stat = ax => {
+    const v = mid.map(m => m.pos[ax]).sort((a, b) => a - b);
+    return { med: v[Math.floor(v.length / 2)], spread: v[v.length - 1] - v[0] };
+  };
+  const sx = stat('x'), sz = stat('z');
+  const ax = sx.spread < sz.spread ? 'x' : 'z';           // yan (sağ-sol) eksen
+  const c = (ax === 'x' ? sx : sz).med;                   // orta düzlem
+  return markers.map(m => {
+    if (!PAIRED.has(m.region.latin)) return null;
+    const p = m.pos.clone(); p[ax] = 2 * c - p[ax];
+    const n = m.normal.clone(); n[ax] = -n[ax]; n.normalize();
+    // karşı taraftaki gerçek yüzeye yapıştır
+    raycaster.set(p.clone().addScaledVector(n, 0.3), n.clone().negate());
+    const h = raycaster.intersectObject(model, true);
+    if (h.length && h[0].distance < 0.6) p.copy(h[0].point).addScaledVector(n, 0.006);
+    return p;
+  });
+}
+function reveal(i){ if (markers[i]) markers[i].el.classList.add('reveal', 'active'); }
+function unreveal(i){ if (markers[i]) markers[i].el.classList.remove('reveal', 'active', 'quizq'); }
+
+function startQuiz(mode){
+  if (!model) return;
+  quiz.mode = (typeof mode === 'string') ? mode : (quiz.mode || 'easy');
+  hidePanels();
+  if (editing) setEditing(false);
+  document.getElementById('cardX').click();      // açık kartı kapat, seçimi temizle
+  closePanel();
+  quiz.run++;
+  quiz.active = true; quiz.busy = false; quiz.drag = false;
+  quiz.solved = quiz.attempts = quiz.wrong = 0;
+  quiz.queue = REGIONS.map((_, i) => i);
+  for (let k = quiz.queue.length - 1; k > 0; k--){            // karıştır
+    const j = Math.floor(Math.random() * (k + 1));
+    [quiz.queue[k], quiz.queue[j]] = [quiz.queue[j], quiz.queue[k]];
+  }
+  quiz.total = quiz.queue.length;
+  quiz.tol = markers.map((m, i) => {
+    let nn = Infinity;
+    markers.forEach((o, k) => { if (k !== i) nn = Math.min(nn, m.pos.distanceTo(o.pos)); });
+    const bone = MODELS[curModel].kind === 'bone';
+    const lo = bone ? QUIZ.boneMin : QUIZ.tolMin, hi = bone ? QUIZ.boneMax : QUIZ.tolMax;
+    return Math.min(hi, Math.max(lo, QUIZ.tolK * nn));
+  });
+  markers.forEach((m, i) => unreveal(i));
+  qend.classList.remove('show');
+  hideMsg();
+  quiz.mirror = computeMirrors();
+  document.body.classList.add('testing');
+  controls.enabled = true;
+  const v = defaultView(1); goTo(v.pos, v.target);
+  nextCard();
+}
+
+function endQuiz(){
+  hidePanels();
+  qmenu.classList.remove('show');
+  quiz.active = false; quiz.run++; quiz.busy = false; quiz.drag = false;
+  document.body.classList.remove('testing');
+  qcard.classList.add('hide'); resetCardPos();
+  qend.classList.remove('show');
+  hideMsg();
+  markers.forEach((m, i) => unreveal(i));
+  controls.enabled = true;
+  const v = defaultView(1); goTo(v.pos, v.target);
+}
+
+function nextCard(){
+  if (!quiz.active) return;
+  hideMsg();
+  updateProg();
+  hidePanels();
+  if (!quiz.queue.length){ finishQuiz(); return; }
+  quiz.busy = false;
+  controls.enabled = true;
+  if (quiz.mode === 'hard') return typeCard();
+  if (quiz.mode === 'medium') return (quiz.queue.length >= 3 && Math.random() >= 0.3) ? matchRound() : tfCard();
+  placeCard();
+}
+function placeCard(){
+  quiz.cur = quiz.queue.shift();
+  const r = REGIONS[quiz.cur];
+  qLat.textContent = r.latin;
+  qcard.style.setProperty('--c', r.color);
+  resetCardPos();
+  qcard.classList.remove('hide');
+  quiz.busy = false;
+  controls.enabled = true;
+}
+
+function finishQuiz(){
+  quiz.busy = true; quiz.cur = -1;
+  qcard.classList.add('hide');
+  const pct = quiz.attempts ? Math.round(quiz.total / quiz.attempts * 100) : 100;
+  document.getElementById('qStats').textContent =
+    quiz.total + ' terimin hepsini doğru yaptınız. Deneme: ' + quiz.attempts + ' · Hata: ' + quiz.wrong + ' · İsabet: %' + pct;
+  qend.classList.add('show');
+}
+
+function judge(i, point){
+  const run = quiz.run;
+  const m = markers[i], r = REGIONS[i];
+  quiz.busy = true; controls.enabled = false;
+  quiz.attempts++;
+  qcard.classList.add('hide'); resetCardPos();
+  const d1 = point.distanceTo(m.pos);
+  const pm = quiz.mirror[i];
+  const d2 = pm ? point.distanceTo(pm) : Infinity;
+  const ok = Math.min(d1, d2) <= quiz.tol[i];
+  const otherSide = ok && d2 < d1;
+  if (!otherSide) reveal(i);
+
+  if (ok){
+    quiz.solved++; updateProg();
+    showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')' + (otherSide ? ' · karşı taraf' : ''), 'ok');
+    setTimeout(() => { if (run !== quiz.run) return; unreveal(i); nextCard(); }, QUIZ.okMs);
+    return;
+  }
+
+  // yanlış: kartı 3 kart sonra tekrar sun
+  quiz.wrong++;
+  quiz.queue.splice(Math.min(QUIZ.requeueAfter, quiz.queue.length), 0, i);
+  showMsg('Yanlış. Doğru yer burası: ' + r.latin + ' (' + r.tr + ')', 'bad');
+  const back = { p: camera.position.clone(), t: controls.target.clone() };
+  const dir = m.normal.clone(); dir.y *= 0.3; dir.normalize();
+  goTo(m.pos.clone().addScaledVector(dir, 1.0), m.pos.clone(), QUIZ.travelMs);
+  setTimeout(() => {
+    if (run !== quiz.run) return;
+    goTo(back.p, back.t, QUIZ.travelMs);
+    setTimeout(() => { if (run !== quiz.run) return; unreveal(i); nextCard(); }, QUIZ.travelMs + 100);
+  }, QUIZ.travelMs + QUIZ.wrongLookMs);
+}
+
+/* kartı sürükle-bırak */
+function moveCard(e){
+  qcard.classList.add('drag');
+  qcard.style.left = e.clientX + 'px';
+  qcard.style.top = e.clientY + 'px';
+}
+qcard.addEventListener('pointerdown', e => {
+  if (!quiz.active || quiz.busy || quiz.cur < 0) return;
+  e.preventDefault();
+  try { qcard.setPointerCapture(e.pointerId); } catch (err) {}
+  quiz.drag = true;
+  moveCard(e);
+});
+qcard.addEventListener('pointermove', e => { if (quiz.drag) moveCard(e); });
+qcard.addEventListener('pointercancel', () => { quiz.drag = false; resetCardPos(); });
+qcard.addEventListener('pointerup', e => {
+  if (!quiz.drag) return;
+  quiz.drag = false;
+  try { qcard.releasePointerCapture(e.pointerId); } catch (err) {}
+  const x = e.clientX, y = e.clientY;
+  if (y > window.innerHeight - 110){ resetCardPos(); return; }       // geri bırakıldı
+  raycaster.setFromCamera(new THREE.Vector2(x / window.innerWidth * 2 - 1, -(y / window.innerHeight) * 2 + 1), camera);
+  const hits = raycaster.intersectObject(model, true);
+  if (!hits.length){ resetCardPos(); showMsg('Kartı modelin üzerine bırakın', 'info', 1400); return; }
+  judge(quiz.cur, hits[0].point);
+});
+
+document.getElementById('bQuiz').addEventListener('click', () => { if (model) qmenu.classList.add('show'); });
+document.getElementById('qExit').addEventListener('click', endQuiz);
+document.getElementById('qDone').addEventListener('click', endQuiz);
+document.getElementById('qAgain').addEventListener('click', () => startQuiz(quiz.mode));
+
+/* ---------- anatomik düzlemler ---------- */
+/* Sagittal: sağ-sol ayıran (orta çizgide), Frontal (koronal): ön-arka ayıran, Transvers (horizontal): üst-alt ayıran. */
+const PLANES_DEF = [
+  { key:'sag', latin:'Planum sagittale',    tr:'Sagittal düzlem',               color:'#4aa3ff' },
+  { key:'fro', latin:'Planum frontale',     tr:'Frontal (koronal) düzlem',      color:'#2fd07a' },
+  { key:'tra', latin:'Planum transversale', tr:'Transvers (horizontal) düzlem', color:'#ff8a1f' },
+];
+const planeGroup = new THREE.Group(); planeGroup.visible = false; scene.add(planeGroup);
+const planeObjs = {};
+const planeOn = { sag:false, fro:false, tra:false };
+const tzwrap = document.getElementById('tzwrap');
+const tzRange = document.getElementById('tzRange');
+const _pv = new THREE.Vector3();
+
+function bodyFrame(){
+  const mid = markers.filter(m => MIDLINE.includes(m.region.latin));
+  const stat = ax => {
+    const v = mid.map(m => m.pos[ax]).sort((a, b) => a - b);
+    return v.length ? { med: v[v.length >> 1], spread: v[v.length - 1] - v[0] } : { med: 0, spread: 0 };
+  };
+  const sx = stat('x'), sz = stat('z');
+  const latAx = sx.spread < sz.spread ? 'x' : 'z';           // yan (sağ-sol) eksen
+  const apAx = latAx === 'x' ? 'z' : 'x';                    // ön-arka eksen
+  const n = modelInfo.norm || [0.8, 2, 2.2];
+  const size = { x:n[0], y:n[1], z:n[2] };
+  const ab = markers.find(m => m.region.latin === 'Abdomen');
+  return { latAx, apAx, c:(latAx === 'x' ? sx : sz).med,
+           latSize:size[latAx] * 1.12, apSize:size[apAx] * 1.3, h:2.15, yT: ab ? ab.pos.y : 1.2 };
+}
+
+function buildPlanes(){
+  while (planeGroup.children.length){
+    const o = planeGroup.children.pop();
+    o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
+  }
+  Object.values(planeObjs).forEach(o => o.el.remove());
+  const f = bodyFrame();
+  const axv = a => a === 'x' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+  const Y = new THREE.Vector3(0, 1, 0), lat = axv(f.latAx), ap = axv(f.apAx);
+
+  const make = (def, u, v, wd, ht, center) => {
+    const g = new THREE.PlaneGeometry(wd, ht);
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+      color:def.color, transparent:true, opacity:0.16, side:THREE.DoubleSide, depthWrite:false }));
+    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),
+      new THREE.LineBasicMaterial({ color:def.color, transparent:true, opacity:0.9 })));
+    const w = new THREE.Vector3().crossVectors(u, v);
+    mesh.setRotationFromMatrix(new THREE.Matrix4().makeBasis(u, v, w));
+    mesh.position.copy(center);
+    mesh.renderOrder = 5;
+    planeGroup.add(mesh);
+    const el = document.createElement('div');
+    el.className = 'pl';
+    el.style.setProperty('--c', def.color);
+    el.innerHTML = '<b>' + def.latin + '</b> <small>(' + def.tr + ')</small>';
+    markersEl.appendChild(el);
+    planeObjs[def.key] = { mesh, el,
+      anchor: v.clone().multiplyScalar(ht / 2 - 0.06).add(u.clone().multiplyScalar(wd * 0.22)) };
+  };
+
+  const cSag = new THREE.Vector3(); cSag[f.latAx] = f.c; cSag.y = f.h / 2;    // orta çizgi
+  const cFro = new THREE.Vector3(0, f.h / 2, 0);                              // model gövde merkezi
+  const cTra = new THREE.Vector3(0, f.yT, 0);
+  make(PLANES_DEF[0], ap,  Y,  f.apSize,  f.h,       cSag);   // sagittal: normal = yan eksen
+  make(PLANES_DEF[1], lat, Y,  f.latSize, f.h,       cFro);   // frontal:  normal = ön-arka eksen
+  make(PLANES_DEF[2], lat, ap, f.latSize, f.apSize,  cTra);   // transvers: normal = dikey eksen
+  tzRange.value = f.yT;
+}
+
+function updatePlaneLabels(){
+  camera.updateMatrixWorld();
+  const show = (planeOn.sag || planeOn.fro || planeOn.tra) && !!model && MODELS[curModel].kind === 'body' && !document.body.classList.contains('testing');
+  planeGroup.visible = show;
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const d of PLANES_DEF){
+    const o = planeObjs[d.key]; if (!o) continue;
+    const on = show && planeOn[d.key];
+    o.mesh.visible = on;
+    if (!on){ o.el.style.display = 'none'; continue; }
+    _pv.copy(o.mesh.position).add(o.anchor).project(camera);
+    const vis = _pv.z < 1 && Math.abs(_pv.x) < 1.1 && Math.abs(_pv.y) < 1.1;
+    o.el.style.display = vis ? 'block' : 'none';
+    if (vis) o.el.style.transform = 'translate(' + ((_pv.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' +
+                                    ((-_pv.y * 0.5 + 0.5) * h).toFixed(1) + 'px) translate(-50%,-50%)';
+  }
+}
+
+const pside = document.getElementById('pside');
+document.getElementById('bPlanes').addEventListener('click', e => {
+  const open = pside.classList.toggle('open');
+  e.currentTarget.setAttribute('aria-expanded', String(open));
+});
+pside.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+  if (!model) return;
+  const k = b.dataset.k;
+  const anyBefore = planeOn.sag || planeOn.fro || planeOn.tra;
+  planeOn[k] = !planeOn[k];
+  if (!anyBefore && planeOn[k]){                          // ilk açılışta güncel konumla kur, transvers yüksekliğini koru
+    const prevY = planeObjs.tra ? planeObjs.tra.mesh.position.y : null;
+    buildPlanes();
+    if (prevY !== null){ planeObjs.tra.mesh.position.y = prevY; tzRange.value = prevY; }
+  }
+  b.setAttribute('aria-pressed', String(planeOn[k]));
+  tzwrap.classList.toggle('on', planeOn.tra);
+}));
+tzRange.addEventListener('input', () => {
+  const o = planeObjs.tra; if (o) o.mesh.position.y = +tzRange.value;
+});
+
+/* ---------- anatomik eksenler (her zaman açık) ---------- */
+const AXES_DEF = [
+  { key:'ver', latin:'Axis verticalis',    tr:'dikey eksen',         color:'#ff5a7a' },
+  { key:'sag', latin:'Axis sagittalis',    tr:'ön-arka yatay eksen', color:'#e8c43a' },
+  { key:'tra', latin:'Axis transversalis', tr:'sağ-sol yatay eksen', color:'#b57cff' },
+];
+const AXIS_HALF = { ver:1.1, sag:0.55, tra:0.8 };      // eksen yarım uzunlukları (model boyu = 2)
+const axisGroup = new THREE.Group(); scene.add(axisGroup);
+const axisObjs = [];
+
+function buildAxes(){
+  if (!model || !markers.length) return;
+  while (axisGroup.children.length){
+    const o = axisGroup.children.pop();
+    o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
+  }
+  axisObjs.forEach(o => o.el.remove()); axisObjs.length = 0;
+
+  const f = bodyFrame();
+  const pel = markers.find(m => m.region.latin === 'Pelvis');
+  const center = new THREE.Vector3(); center[f.latAx] = f.c; center.y = pel ? pel.pos.y : 1.05;
+  const unit = a => a === 'x' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+  const dirs = { ver:new THREE.Vector3(0, 1, 0), sag:unit(f.apAx), tra:unit(f.latAx) };
+  const Y = new THREE.Vector3(0, 1, 0);
+
+  AXES_DEF.forEach(d => {
+    const half = AXIS_HALF[d.key], dir = dirs[d.key];
+    const mat = new THREE.MeshBasicMaterial({ color:d.color, transparent:true, opacity:0.9, depthTest:false, depthWrite:false });
+    const mid = center.clone(); if (d.key === 'ver') mid.y = 1.05;
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, half * 2, 10), mat);
+    line.quaternion.setFromUnitVectors(Y, dir);
+    line.position.copy(mid);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.07, 12), mat);
+    tip.quaternion.setFromUnitVectors(Y, dir);
+    tip.position.copy(mid).addScaledVector(dir, half);
+    line.renderOrder = tip.renderOrder = 10;
+    axisGroup.add(line, tip);
+    const el = document.createElement('div');
+    el.className = 'pl';
+    el.style.setProperty('--c', d.color);
+    el.innerHTML = '<b>' + d.latin + '</b> <small>(' + d.tr + ')</small>';
+    markersEl.appendChild(el);
+    axisObjs.push({ el, pos: mid.clone().addScaledVector(dir, half + 0.07) });
+  });
+
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 12),
+    new THREE.MeshBasicMaterial({ color:0xffffff, depthTest:false, depthWrite:false }));
+  dot.position.copy(center); dot.renderOrder = 11;
+  axisGroup.add(dot);
+}
+
+function updateAxes(){
+  const show = !!model && MODELS[curModel].kind === 'body' && axisObjs.length > 0 && !document.body.classList.contains('testing');
+  axisGroup.visible = show;
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const o of axisObjs){
+    if (!show){ o.el.style.display = 'none'; continue; }
+    _pv.copy(o.pos).project(camera);
+    const vis = _pv.z < 1 && Math.abs(_pv.x) < 1.1 && Math.abs(_pv.y) < 1.1;
+    o.el.style.display = vis ? 'block' : 'none';
+    if (vis) o.el.style.transform = 'translate(' + ((_pv.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' +
+                                    ((-_pv.y * 0.5 + 0.5) * h).toFixed(1) + 'px) translate(-50%,-50%)';
+  }
+}
+
+/* ---------- yüzey örnekleri: model sınırı dışına da sürükleyebilmek için ---------- */
+let cloud = null;
+function getCloud(){
+  if (cloud) return cloud;
+  model.updateMatrixWorld(true);
+  let total = 0;
+  model.traverse(o => { if (o.isMesh && o.geometry && o.geometry.attributes.position) total += o.geometry.attributes.position.count; });
+  const stride = Math.max(1, Math.floor(total / 40000));
+  const pts = [], nrm = [];
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), nm = new THREE.Matrix3();
+  model.traverse(o => {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+    const pos = o.geometry.attributes.position, nor = o.geometry.attributes.normal;
+    nm.getNormalMatrix(o.matrixWorld);
+    for (let i = 0; i < pos.count; i += stride){
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      if (nor) n.fromBufferAttribute(nor, i).applyMatrix3(nm).normalize(); else n.set(0, 0, 1);
+      pts.push(v.x, v.y, v.z); nrm.push(n.x, n.y, n.z);
+    }
+  });
+  cloud = { pts:new Float32Array(pts), nrm:new Float32Array(nrm), n:pts.length / 3 };
+  return cloud;
+}
+/* ışına en yakın, kameraya bakan yüzey noktası (ışın modele değmese bile) */
+function nearestOnRay(ray){
+  const c = getCloud(), o = ray.origin, d = ray.direction;
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < c.n; i++){
+    const px = c.pts[3 * i] - o.x, py = c.pts[3 * i + 1] - o.y, pz = c.pts[3 * i + 2] - o.z;
+    if (c.nrm[3 * i] * -px + c.nrm[3 * i + 1] * -py + c.nrm[3 * i + 2] * -pz <= 0) continue;   // arkaya bakan nokta
+    const t = px * d.x + py * d.y + pz * d.z;
+    if (t < 0) continue;
+    const qx = px - t * d.x, qy = py - t * d.y, qz = pz - t * d.z;
+    const dd = qx * qx + qy * qy + qz * qz;
+    if (dd < bd){ bd = dd; best = i; }
+  }
+  if (best < 0) return null;
+  return { point:new THREE.Vector3(c.pts[3 * best], c.pts[3 * best + 1], c.pts[3 * best + 2]),
+           normal:new THREE.Vector3(c.nrm[3 * best], c.nrm[3 * best + 1], c.nrm[3 * best + 2]) };
+}
+/* bir noktaya en yakın yüzey noktası; zSign verilirse yalnızca o kemikte (z>0 sol, z<0 sağ) */
+function nearestSurface(q, zSign){
+  const c = getCloud();
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < c.n; i++){
+    if (zSign && Math.sign(c.pts[3 * i + 2]) !== zSign) continue;
+    const dx = c.pts[3 * i] - q.x, dy = c.pts[3 * i + 1] - q.y, dz = c.pts[3 * i + 2] - q.z;
+    const dd = dx * dx + dy * dy + dz * dz;
+    if (dd < bd){ bd = dd; best = i; }
+  }
+  if (best < 0) return null;
+  return { point:new THREE.Vector3(c.pts[3 * best], c.pts[3 * best + 1], c.pts[3 * best + 2]),
+           normal:new THREE.Vector3(c.nrm[3 * best], c.nrm[3 * best + 1], c.nrm[3 * best + 2]) };
+}
+/* terim yanlış kemikteyse karşı kemiğe taşı: (x,y,z) -> (-x,y,-z), en yakın yüzeye yapıştır */
+function fixBoneSides(){
+  if (MODELS[curModel].kind !== 'bone') return false;
+  let changed = false;
+  REGIONS.forEach(r => {
+    if (!r.p) return;
+    const want = boneOf(r) === 'L' ? 1 : -1;
+    if (Math.sign(r.p[2]) === want) return;
+    const h = nearestSurface(new THREE.Vector3(-r.p[0], r.p[1], -r.p[2]), want);
+    if (h){ r.p = h.point.toArray(); r.n = h.normal.toArray(); changed = true; }
+  });
+  return changed;
+}
+document.getElementById('edSwap').addEventListener('click', () => {
+  const m = markers[activeIdx];
+  if (!m || !model) { updateRead('Önce bir bölge seçin.'); return; }
+  const want = Math.sign(m.pos.z) > 0 ? -1 : 1;
+  const h = nearestSurface(new THREE.Vector3(-m.pos.x, m.pos.y, -m.pos.z), want);
+  if (h){ setPoint(activeIdx, h.point, h.normal); save(); }
+});
+
+/* ---------- giriş yönergesi ---------- */
+const introEl = document.getElementById('intro');
+function showIntro(){
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  document.getElementById('introText').innerHTML = touch
+    ? '<p><b>Kamerayı döndürmek için</b> ekranda tek parmağınızla kaydırın.</p>' +
+      '<p><b>Yakınlaşmak için</b> iki parmağınızı birbirinden açın, <b>uzaklaşmak için</b> birbirine yaklaştırın.</p>'
+    : '<p><b>Kamerayı döndürmek için</b> farenin sol tuşuna basılı tutup sürükleyin.</p>' +
+      '<p><b>Yakınlaşmak ve uzaklaşmak için</b> fare tekerleğini çevirin.</p>';
+  introEl.classList.add('show');
+}
+document.getElementById('introOk').addEventListener('click', () => introEl.classList.remove('show'));
+
+/* ---------- load model ---------- */
+const loadEl = document.getElementById('loader');
+const msgEl = document.getElementById('msg');
+const barEl = document.getElementById('bar');
+
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
+loader.setMeshoptDecoder(MeshoptDecoder);
+
+function loadModel(M){
+  loadEl.classList.remove('done');
+  barEl.style.width = '0';
+  msgEl.classList.remove('err');
+  msgEl.textContent = M.title + ' modeli yükleniyor';
+  if (M.group){ barEl.style.width = '100%'; activateModel(M); return; }
+  loader.load(M.file, gltf => {
+  const group = new THREE.Group();
+  group.add(gltf.scene);
+  const info = { raw:null, norm:null };
+
+  // Z-up gelen modeller için düzeltme
+  // Gerçek (iskelet dönüşümleri dahil) sınır kutusunu köşe köşe hesapla
+  function measure(root){
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    const v = new THREE.Vector3();
+    root.traverse(o => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+      if (o.isSkinnedMesh && o.skeleton) o.skeleton.update();
+      const pos = o.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++){
+        v.fromBufferAttribute(pos, i);
+        if (o.isSkinnedMesh && o.applyBoneTransform) o.applyBoneTransform(i, v);
+        v.applyMatrix4(o.matrixWorld);
+        if (Number.isFinite(v.x + v.y + v.z)) box.expandByPoint(v);
+      }
+    });
+    return box;
+  }
+
+  let box = measure(gltf.scene);
+  let size = box.getSize(new THREE.Vector3());
+  console.log('Model boyutu (ham):', size.x, size.y, size.z);
+  info.raw = [size.x, size.y, size.z];
+
+  if (box.isEmpty() || !Number.isFinite(size.y) || size.y <= 0){
+    console.warn('Sınır kutusu hesaplanamadı, model olduğu gibi gösteriliyor.');
+  } else {
+    if (M.kind === 'bone'){
+      // kemik: en uzun ekseni dikey (Y) yap
+      if (size.x >= size.y && size.x >= size.z){ gltf.scene.rotation.z = Math.PI / 2; }
+      else if (size.z >= size.y && size.z >= size.x){ gltf.scene.rotation.x = -Math.PI / 2; }
+      box = measure(gltf.scene);
+      size = box.getSize(new THREE.Vector3());
+    } else if (size.z > size.y * 1.2 && size.z > size.x){
+      gltf.scene.rotation.x = -Math.PI / 2;
+      box = measure(gltf.scene);
+      size = box.getSize(new THREE.Vector3());
+    }
+    // boyu 2 birime ölçekle, ayaklar y=0, x/z ortalı
+    gltf.scene.scale.multiplyScalar(2 / size.y);
+    box = measure(gltf.scene);
+    const c = box.getCenter(new THREE.Vector3());
+    gltf.scene.position.x -= c.x;
+    gltf.scene.position.z -= c.z;
+    gltf.scene.position.y -= box.min.y;
+    gltf.scene.updateMatrixWorld(true);
+    const fin = measure(gltf.scene).getSize(new THREE.Vector3());
+    console.log('Model boyutu (normalize):', fin.x, fin.y, fin.z);
+    info.norm = [fin.x, fin.y, fin.z];
+  }
+
+  gltf.scene.traverse(o => { if (o.isMesh){ o.frustumCulled = false; } });
+
+  M.group = group; M.info = info;
+  barEl.style.width = '100%';
+  activateModel(M);
+}, ev => {
+  if (ev.lengthComputable) barEl.style.width = (ev.loaded / ev.total * 100) + '%';
+}, err => {
+  console.error(err);
+  msgEl.classList.add('err');
+  msgEl.textContent = M.file + ' yüklenemedi. Dosyanın bu HTML ile aynı klasörde olduğundan emin olun. Dosyayı çift tıklayarak açmak yerine bir yerel sunucu kullanın (örneğin klasörde: python3 -m http.server, sonra tarayıcıda localhost:8000).';
+    if (M !== MODELS.body) setTimeout(() => switchModel('body'), 3500);
+  });
+}
+
+/* ---------- test modları: orta (eşleştirme + doğru/yanlış) ve zor (yazarak) ---------- */
+const qmenu = document.getElementById('qmenu');
+const qpanel = document.getElementById('qpanel');
+const qMatch = document.getElementById('qMatch'), qTF = document.getElementById('qTF'), qType = document.getElementById('qType');
+const tfQ = document.getElementById('tfQ'), tyQ = document.getElementById('tyQ'), tyH = document.getElementById('tyH'), tyIn = document.getElementById('tyIn');
+const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+const norm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\(.*?\)\s*/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
+
+function requeue(i, extra){ quiz.queue.splice(Math.min(QUIZ.requeueAfter + (extra || 0), quiz.queue.length), 0, i); }
+function advance(ms){ const run = quiz.run; setTimeout(() => { if (run === quiz.run) nextCard(); }, ms); }
+function hidePanels(){
+  qpanel.classList.remove('show');
+  qMatch.hidden = qTF.hidden = qType.hidden = true;
+  qcard.classList.add('hide'); resetCardPos();
+  if (quiz.qMark !== undefined && quiz.qMark >= 0){ unreveal(quiz.qMark); quiz.qMark = -1; }
+  quiz.tf = quiz.ty = quiz.match = null;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+function showPanel(el){ qMatch.hidden = qTF.hidden = qType.hidden = true; el.hidden = false; qpanel.classList.add('show'); }
+
+/* zorluk menüsü */
+qmenu.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { qmenu.classList.remove('show'); startQuiz(b.dataset.lv); }));
+document.getElementById('qmCancel').addEventListener('click', () => qmenu.classList.remove('show'));
+document.getElementById('qMode').addEventListener('click', () => { endQuiz(); qmenu.classList.add('show'); });
+
+/* --- orta: doğru / yanlış --- */
+function tfCard(){
+  const i = quiz.cur = quiz.queue.shift(), r = REGIONS[i];
+  let shown = r.tr, truth = true;
+  if (Math.random() < 0.5){
+    const pool = REGIONS.filter(o => o.tr !== r.tr);
+    if (pool.length){ shown = pool[Math.floor(Math.random() * pool.length)].tr; truth = false; }
+  }
+  quiz.tf = { i, truth };
+  tfQ.innerHTML = '';
+  const b = document.createElement('b'); b.textContent = r.latin;
+  tfQ.append(b, document.createTextNode('  =  ' + shown));
+  showPanel(qTF);
+}
+function answerTF(v){
+  if (!quiz.active || quiz.busy || !quiz.tf) return;
+  const { i, truth } = quiz.tf, r = REGIONS[i];
+  quiz.busy = true; quiz.attempts++;
+  if (v === truth){
+    quiz.solved++; updateProg();
+    showMsg('Doğru', 'ok'); advance(900);
+  } else {
+    quiz.wrong++; requeue(i);
+    showMsg('Yanlış. Doğrusu: ' + r.latin + ' = ' + r.tr, 'bad'); advance(2200);
+  }
+}
+document.getElementById('tfTrue').addEventListener('click', () => answerTF(true));
+document.getElementById('tfFalse').addEventListener('click', () => answerTF(false));
+
+/* --- orta: eşleştirme --- */
+function matchRound(){
+  const picks = [], seen = new Set();
+  for (const i of quiz.queue){
+    if (picks.length >= 4) break;
+    const tr = REGIONS[i].tr;
+    if (seen.has(tr)) continue;
+    seen.add(tr); picks.push(i);
+  }
+  if (picks.length < 3) return tfCard();
+  picks.forEach(i => quiz.queue.splice(quiz.queue.indexOf(i), 1));
+  quiz.cur = -1;
+  const st = quiz.match = { items:picks, done:new Set(), wrong:new Set(), selL:-1, selR:-1 };
+  const mL = document.getElementById('mL'), mR = document.getElementById('mR');
+  mL.innerHTML = mR.innerHTML = '';
+  const mk = (i, text, side) => {
+    const b = document.createElement('button');
+    b.className = 'mb'; b.textContent = text; b.dataset.i = i;
+    b.addEventListener('click', () => pickMatch(side, i, b));
+    return b;
+  };
+  shuffle(picks).forEach(i => mL.appendChild(mk(i, REGIONS[i].latin, 'L')));
+  shuffle(picks).forEach(i => mR.appendChild(mk(i, REGIONS[i].tr, 'R')));
+  showPanel(qMatch);
+}
+function pickMatch(side, i, btn){
+  const st = quiz.match; if (!st || quiz.busy) return;
+  const col = document.getElementById(side === 'L' ? 'mL' : 'mR');
+  col.querySelectorAll('.mb.sel').forEach(x => x.classList.remove('sel'));
+  if (st['sel' + side] === i){ st['sel' + side] = -1; return; }     // aynı seçime tekrar basınca bırak
+  st['sel' + side] = i; btn.classList.add('sel');
+  if (st.selL < 0 || st.selR < 0) return;
+
+  const a = st.selL, b = st.selR;
+  const bl = document.querySelector('#mL .mb[data-i="' + a + '"]'), br = document.querySelector('#mR .mb[data-i="' + b + '"]');
+  st.selL = st.selR = -1;
+  quiz.attempts++;
+  if (a === b){
+    bl.classList.remove('sel'); br.classList.remove('sel');
+    bl.classList.add('ok'); br.classList.add('ok');
+    st.done.add(a);
+    if (st.done.size === st.items.length) finishMatch();
+  } else {
+    quiz.wrong++; st.wrong.add(a); st.wrong.add(b);
+    bl.classList.add('bad'); br.classList.add('bad');
+    setTimeout(() => { bl.classList.remove('sel', 'bad'); br.classList.remove('sel', 'bad'); }, 600);
+  }
+}
+function finishMatch(){
+  const st = quiz.match; quiz.busy = true;
+  let k = 0;
+  st.items.forEach(i => { if (st.wrong.has(i)) requeue(i, k++); else quiz.solved++; });
+  updateProg();
+  showMsg(st.wrong.size ? 'Eşleştirme bitti, hatalı olanlar tekrar gelecek' : 'Hepsi doğru', st.wrong.size ? 'bad' : 'ok');
+  advance(1300);
+}
+
+/* --- zor: cevabı yaz --- */
+function typeCard(){
+  const i = quiz.cur = quiz.queue.shift(), r = REGIONS[i];
+  const pointQ = Math.random() < 0.4;
+  quiz.ty = { i, pointQ };
+  if (pointQ){
+    tyH.textContent = 'Modelde işaretli bölgenin Latince adını yaz';
+    tyQ.textContent = '?';
+    const m = markers[i];
+    m.el.classList.add('reveal', 'active', 'quizq'); quiz.qMark = i;
+    const dir = m.normal.clone(); dir.y *= 0.3; dir.normalize();
+    goTo(m.pos.clone().addScaledVector(dir, 1.0), m.pos.clone(), 900);
+  } else {
+    tyH.textContent = 'Latince karşılığını yaz';
+    tyQ.textContent = r.tr;
+  }
+  tyIn.value = ''; tyIn.disabled = false;
+  showPanel(qType);
+  setTimeout(() => { if (quiz.ty && quiz.ty.i === i) tyIn.focus(); }, 80);
+}
+function submitType(giveUp){
+  if (!quiz.active || quiz.busy || !quiz.ty) return;
+  const { i } = quiz.ty, r = REGIONS[i], typed = norm(tyIn.value);
+  if (!giveUp && !typed) return;
+  quiz.busy = true; quiz.attempts++;
+  tyIn.disabled = true; tyIn.blur();
+  // doğru da olsa yanlış da olsa kamerayı o bölgeye götür ve etiketini göster
+  const mk = markers[i];
+  mk.el.classList.remove('quizq'); mk.el.classList.add('reveal', 'active'); quiz.qMark = i;
+  const dir = mk.normal.clone(); dir.y *= 0.3; dir.normalize();
+  goTo(mk.pos.clone().addScaledVector(dir, 1.0), mk.pos.clone(), 900);
+  if (!giveUp && typed === norm(r.latin)){
+    quiz.solved++; updateProg();
+    showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')', 'ok'); advance(2000);
+  } else {
+    quiz.wrong++; requeue(i);
+    showMsg((giveUp ? 'Cevap: ' : 'Yanlış. Doğrusu: ') + r.latin + ' (' + r.tr + ')', 'bad'); advance(2600);
+  }
+}
+document.getElementById('tySend').addEventListener('click', () => submitType(false));
+document.getElementById('tyGive').addEventListener('click', () => submitType(true));
+tyIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); submitType(false); } });
+
+/* mobil klavye açılınca panel klavyenin altında kalmasın */
+if (window.visualViewport){
+  const upd = () => {
+    const vv = window.visualViewport;
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    qpanel.style.bottom = 'calc(var(--safe-b) + ' + (16 + kb) + 'px)';
+  };
+  window.visualViewport.addEventListener('resize', upd);
+  window.visualViewport.addEventListener('scroll', upd);
+}
+
+/* ---------- model değiştirme ---------- */
+let introShown = false;
+function applyFlip(M){
+  model.rotation.z = M.flipV ? Math.PI : 0;       // başı aşağıdaysa dikey çevir (y -> 2 - y)
+  model.position.y = M.flipV ? 2 : 0;
+  model.updateMatrixWorld(true);
+}
+function activateModel(M){
+  if (model) scene.remove(model);
+  model = M.group; modelInfo = M.info;
+  scene.add(model);
+  facing = 1; M.flipV = false;
+  loadSaved();
+  applyFlip(M);
+  cloud = null;
+  if (fixBoneSides()) save();
+  buildMarkers();
+  tween = null;
+  const v = defaultView(1);
+  camera.position.copy(v.pos);
+  controls.target.copy(v.target);
+  controls.update();
+  loadEl.classList.add('done');
+  if (!introShown){ introShown = true; showIntro(); }
+}
+function switchModel(k){
+  if (k === curModel && model) return;
+  if (editing) setEditing(false);
+  document.getElementById('cardX').click();
+  closePanel();
+  curModel = k;
+  const M = MODELS[k];
+  document.body.classList.toggle('bone-mode', M.kind === 'bone');
+  document.querySelectorAll('#mswitch [data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === k)));
+  REGIONS.length = 0; REGIONS.push(...M.regions);
+  applyDefaults();
+  buildList(); buildEdSel();
+  document.getElementById('gloss').hidden = M.kind !== 'bone';
+  document.getElementById('bFlipV').hidden = M.kind !== 'bone';
+  document.getElementById('edSwap').hidden = M.kind !== 'bone';
+  loadModel(M);
+}
+document.querySelectorAll('#mswitch [data-m]').forEach(b => b.addEventListener('click', () => switchModel(b.dataset.m)));
+
+document.getElementById('bFlipV').addEventListener('click', () => {
+  const M = MODELS[curModel];
+  if (!model || M.kind !== 'bone') return;
+  M.flipV = !M.flipV;
+  REGIONS.forEach(r => { if (r.p){ r.p = [-r.p[0], 2 - r.p[1], r.p[2]]; r.n = [-r.n[0], -r.n[1], r.n[2]]; } });
+  applyFlip(M);
+  cloud = null;
+  buildMarkers(); save();
+  if (activeIdx >= 0) select(activeIdx, false);
+  const v = defaultView(1); goTo(v.pos, v.target);
+  closePanel();
+});
+
+document.getElementById('glossList').innerHTML = GLOSS_IMG.map(g =>
+  '<div class="gl"><b>' + g.label + '</b><span>' + g.tr + '</span></div>').join('');
+
+loadModel(MODELS.body);
+
+/* ---------- etiket yerleşimi: üst üste binmesin ----------
+   Etiketler açıkken kartlar ekranın sol ve sağ kenarında iki sütuna dizilir, noktalara ince çizgiyle bağlanır. */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const leaders = document.createElementNS(SVGNS, 'svg');
+leaders.setAttribute('class', 'leaders');
+markersEl.prepend(leaders);
+const leaderLines = [];
+let lastCompact = null;
+
+function leaderLine(i){
+  while (leaderLines.length <= i){
+    const l = document.createElementNS(SVGNS, 'line');
+    leaders.appendChild(l); leaderLines.push(l);
+  }
+  return leaderLines[i];
+}
+function clearLabel(m){
+  if (!m.tag) return;
+  m.tag.style.left = ''; m.tag.style.top = ''; m.tag.style.right = '';
+  m.laid = false;
+}
+function layoutLabels(){
+  const on = markersEl.classList.contains('labels-on') && !document.body.classList.contains('testing') &&
+             MODELS[curModel].kind === 'bone';      // sütun düzeni yalnızca kemik modelinde; vücutta eski yerleşim
+  const vis = on ? markers.filter(m => !m.el.classList.contains('off') && m.sx !== undefined) : [];
+  const visSet = new Set(vis);
+  for (const m of markers){
+    if (!m.tag) m.tag = m.el.querySelector('.tag');
+    if (!visSet.has(m) && m.laid) clearLabel(m);
+  }
+  let used = 0;
+  if (!vis.length){
+    leaderLines.forEach(l => { l.style.display = 'none'; });
+    if (lastCompact){ markersEl.classList.remove('compact'); lastCompact = null; markers.forEach(m => { m.tw = 0; }); }
+    return;
+  }
+
+  const w = window.innerWidth, h = window.innerHeight, margin = 10;
+  const top = 112, bottom = h - (editing ? 270 : 84);
+  const cx = vis.reduce((a, m) => a + m.sx, 0) / vis.length;
+  const L = vis.filter(m => m.sx < cx).sort((a, b) => a.sy - b.sy);
+  const R = vis.filter(m => m.sx >= cx).sort((a, b) => a.sy - b.sy);
+
+  // sığmazsa kompakt mod (Türkçe karşılık gizlenir): satır sayısı fazlaysa ya da iki sütun yan yana sığmıyorsa
+  const est = m => 7 * (m.region.latin.length + m.region.tr.length + 3) + 22;
+  const maxL = Math.max(0, ...L.map(est)), maxR = Math.max(0, ...R.map(est));
+  const compact = Math.max(L.length, R.length) * 29 > (bottom - top) || (maxL + maxR + 3 * margin > w);
+  if (compact !== lastCompact){
+    markersEl.classList.toggle('compact', compact); lastCompact = compact;
+    markers.forEach(m => { m.tw = 0; });
+  }
+
+  const place = (group, side) => {
+    const n = group.length; if (!n) return;
+    group.forEach(m => { if (!m.tw){ m.tw = m.tag.offsetWidth; m.th = m.tag.offsetHeight; } });
+    const th = Math.max(...group.map(m => m.th)) || 24;
+    const gap = Math.max(th * 0.55, Math.min(th + 3, (bottom - top) / n));
+    const ys = group.map(m => Math.min(Math.max(m.sy, top), bottom));
+    for (let i = 1; i < n; i++) ys[i] = Math.max(ys[i], ys[i - 1] + gap);
+    if (ys[n - 1] > bottom){
+      ys[n - 1] = bottom;
+      for (let i = n - 2; i >= 0; i--) ys[i] = Math.min(ys[i], ys[i + 1] - gap);
+    }
+    group.forEach((m, i) => {
+      const lx = side === 'L' ? margin : w - margin - m.tw;
+      m.tag.style.right = 'auto';
+      m.tag.style.left = (lx - m.sx).toFixed(1) + 'px';
+      m.tag.style.top = (ys[i] - m.sy - m.th / 2).toFixed(1) + 'px';
+      m.laid = true;
+      const ln = leaderLine(used++);
+      const active = m.el.classList.contains('active');
+      ln.style.display = '';
+      ln.setAttribute('x1', m.sx.toFixed(1)); ln.setAttribute('y1', m.sy.toFixed(1));
+      ln.setAttribute('x2', (side === 'L' ? lx + m.tw : lx).toFixed(1)); ln.setAttribute('y2', ys[i].toFixed(1));
+      ln.setAttribute('stroke', m.region.color);
+      ln.setAttribute('stroke-width', active ? '2' : '1.1');
+      ln.setAttribute('stroke-opacity', active ? '1' : '0.65');
+    });
+  };
+  place(L, 'L'); place(R, 'R');
+  for (let i = used; i < leaderLines.length; i++) leaderLines[i].style.display = 'none';
+}
+
+/* ---------- loop ---------- */
+const v3 = new THREE.Vector3();
+const toCam = new THREE.Vector3();
+
+function ease(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; }
+
+function frame(now){
+  requestAnimationFrame(frame);
+
+  if (tween){
+    const k = Math.min(1, (now - tween.t0) / tween.ms);
+    const e = ease(k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0v, tween.t1v, e);
+    if (k >= 1) tween = null;
+  }
+  controls.update();
+  updatePlaneLabels();
+  updateAxes();
+  renderer.render(scene, camera);
+
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const m of markers){
+    toCam.subVectors(camera.position, m.pos).normalize();
+    v3.copy(m.pos).project(camera);
+    const facingOK = m.normal.dot(toCam) > 0.12;
+    m.el.classList.toggle('behind', editing && !facingOK);
+    const visible = v3.z < 1 && (facingOK || editing) &&
+                    v3.x > -1.1 && v3.x < 1.1 && v3.y > -1.1 && v3.y < 1.1;
+    m.el.classList.toggle('off', !visible);
+    if (!visible) continue;
+    const sx = (v3.x * 0.5 + 0.5) * w;
+    const sy = (-v3.y * 0.5 + 0.5) * h;
+    m.sx = sx; m.sy = sy;
+    m.el.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)`;
+    const left = sx < w * 0.5 - 6;
+    if (left !== m.left){ m.left = left; m.el.classList.toggle('left', left); }
+  }
+  layoutLabels();
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
