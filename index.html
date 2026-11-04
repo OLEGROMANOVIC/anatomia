@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#f3f6fc">
 <title>Anatomia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,500;1,700&display=swap" rel="stylesheet">
+<link rel="preload" href="anatomymodel.glb" as="fetch" crossorigin>
 <style>
   :root{
     --ink:#0d1117;
@@ -292,12 +293,191 @@
   .track span{display:block;height:100%;width:0;background:var(--bone);transition:width .2s}
   .loader .msg{color:var(--mute);font-size:14px;max-width:440px;line-height:1.5}
   .loader .msg.err{color:#e8a0a0}
+  .loader .by{margin-top:10px;font-size:13px;letter-spacing:.14em;color:var(--mute);opacity:.85}
 
   @media (min-width:900px){
     .bar{bottom:20px}
     .card{bottom:84px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* ===== BENTO UI ===== */
+  :root{
+    --tile:rgba(26,33,46,.86);
+    --tile-2:rgba(36,45,62,.92);
+    --bd:rgba(236,230,216,.11);
+    --r-xl:24px; --r-lg:20px; --r-md:16px; --r-sm:12px;
+    --hi:inset 0 1px 0 rgba(255,255,255,.07);
+    --sh:0 10px 28px rgba(0,0,0,.38);
+  }
+  .btn,.card,.panel,.editor,.legend,.mswitch,.tzwrap,.qcard,.qmsg,.qend,.qpanel,.qmenu .box,.intro .box,#qprog,.head{
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+
+  /* düğmeler: kare-yuvarlak karolar */
+  .btn{border-radius:var(--r-md);background:var(--tile);border:1px solid var(--bd);
+    box-shadow:var(--hi),0 4px 12px rgba(0,0,0,.25);
+    transition:background .15s,border-color .15s,transform .12s,box-shadow .15s}
+  .btn:hover{background:var(--tile-2);border-color:rgba(236,230,216,.28);transform:translateY(-1px)}
+  .btn:active{transform:scale(.97)}
+  .btn[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+  .btn.test{border-radius:var(--r-md);border:1px solid var(--bone);background:var(--bone);color:var(--ink);
+    box-shadow:0 6px 18px rgba(236,230,216,.18)}
+  .btn.test:hover{background:#fff}
+  .btn.sm{border-radius:var(--r-sm)}
+
+  /* alt çubuk: tek bir bento tepsisi */
+  .bar{left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 20px);
+    flex-wrap:nowrap;gap:6px;padding:6px;border-radius:var(--r-xl);background:var(--tile);
+    border:1px solid var(--bd);box-shadow:var(--hi),var(--sh)}
+  .bar .btn{box-shadow:none;background:var(--tile-2);padding:0 14px}
+  .bar .btn[aria-pressed="true"]{background:var(--bone)}
+  @media (max-width:480px){ .bar{left:auto;right:10px;transform:none} .bar .btn{padding:0 11px;font-size:13px} }
+
+  /* WhatsApp: yuvarlak kare */
+  .wa{border-radius:var(--r-md)}
+
+  /* başlık karosu */
+  .head{padding:8px 16px 9px;border-radius:var(--r-lg);background:var(--tile);border:1px solid var(--bd);box-shadow:var(--hi),var(--sh)}
+
+  /* model seçici */
+  .mswitch{border-radius:var(--r-lg);padding:5px;background:var(--tile);box-shadow:var(--hi),var(--sh)}
+  .mswitch .btn{border-radius:var(--r-sm);box-shadow:none;background:none;transform:none}
+  .mswitch .btn:hover{background:var(--tile-2)}
+  .mswitch .btn[aria-pressed="true"]{background:var(--bone)}
+
+  /* bilgi kartı: renkli sol şerit */
+  .card{border-radius:var(--r-xl);border:1px solid color-mix(in srgb,var(--c,#fff) 40%,transparent);
+    background:var(--tile);box-shadow:inset 5px 0 0 var(--c,#fff),var(--hi),var(--sh);padding:14px 46px 14px 20px}
+  .card .x{border-radius:var(--r-sm)}
+
+  /* bölgeler paneli */
+  .panel{background:var(--tile);border:1px solid var(--bd);border-right:0;border-radius:var(--r-xl) 0 0 var(--r-xl);
+    box-shadow:var(--hi),-12px 0 36px rgba(0,0,0,.4)}
+  .panel h2 button{border-radius:var(--r-sm)}
+  .item{border-radius:var(--r-md);background:var(--tile-2);border:1px solid var(--bd);margin:0 0 6px;padding:8px 12px}
+  .item:hover,.item.active{background:rgba(236,230,216,.1);border-color:rgba(236,230,216,.26)}
+  .item i.sw{border-radius:4px}
+  .panel #gloss .gl{padding:8px 12px;border-radius:var(--r-sm);background:var(--tile-2);border:1px solid var(--bd);margin:0 0 6px}
+  .panel #gloss{border-top:0}
+
+  /* açıklama kutusu (iskelet bölümleri) */
+  .legend{border-radius:var(--r-lg);background:var(--tile);box-shadow:var(--hi),var(--sh);padding:12px 14px}
+  .legend .li{padding:8px 10px;border-radius:var(--r-sm);background:var(--tile-2);border:1px solid var(--bd);margin-top:8px}
+
+  /* düzenleyici */
+  .editor{border-radius:var(--r-xl) var(--r-xl) 0 0;background:var(--tile);box-shadow:var(--hi),0 -10px 36px rgba(0,0,0,.45)}
+  .ed-row .btn,.ed-pad .btn{border-radius:var(--r-sm);box-shadow:none;background:var(--tile-2)}
+  .editor select,.editor textarea{border-radius:var(--r-sm);background:var(--tile-2)}
+
+  /* düzlem kaydırıcı */
+  .tzwrap{border-radius:var(--r-lg);background:var(--tile);box-shadow:var(--hi),var(--sh)}
+  .tag,.pl{border-radius:10px}
+
+  /* test modu */
+  #qprog{border-radius:var(--r-md);background:var(--tile);box-shadow:var(--hi)}
+  .qcard{border-radius:var(--r-lg);background:var(--tile);box-shadow:inset 0 5px 0 var(--c,#fff),var(--sh)}
+  .qmsg{border-radius:var(--r-lg);background:var(--tile)}
+  .qend{border-radius:var(--r-xl);background:var(--tile);box-shadow:var(--hi),var(--sh)}
+  .qend .btn,.qpanel .row .btn{box-shadow:none;background:var(--tile-2)}
+  .qend .btn.share{background:#25d366;border-color:#25d366}
+  .qpanel{border-radius:var(--r-xl);background:var(--tile);border:1px solid var(--bd);box-shadow:var(--hi),var(--sh)}
+  .qpanel input{border-radius:var(--r-sm);background:var(--tile-2)}
+  .mb,.mq{border-radius:var(--r-sm);background:var(--tile-2)}
+  .mb.sel{background:var(--bone)}
+  .mq:hover,.mb:hover{border-color:rgba(236,230,216,.3)}
+  .qmenu .box{border-radius:var(--r-xl);border:1px solid var(--bd);background:var(--tile);box-shadow:var(--hi),var(--sh)}
+  .qmenu .lv{border-radius:var(--r-md);background:var(--tile-2);box-shadow:var(--hi);transition:transform .12s,border-color .15s}
+  .qmenu .lv:hover{transform:translateY(-1px)}
+  .qmenu .lv:active{transform:scale(.98)}
+  .qmenu #qmCancel{width:100%}
+
+  /* giriş yönergesi */
+  .intro .box{border-radius:var(--r-xl);border:1px solid var(--bd);background:var(--tile);box-shadow:var(--hi),var(--sh)}
+  .intro p{padding:10px 12px;border-radius:var(--r-md);background:var(--tile-2);border:1px solid var(--bd)}
+
+  /* ===== GLASSMORPHISM (bento düzeni üzerine buzlu cam) ===== */
+  :root{
+    --tile:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.05)),rgba(18,26,42,.34);
+    --tile-2:rgba(255,255,255,.09);
+    --bd:rgba(255,255,255,.25);
+    --hi:inset 0 0 0 1px rgba(255,255,255,.05);
+    --sh:0 8px 32px rgba(0,0,0,.32);
+    --r-xl:24px; --r-lg:20px; --r-md:16px; --r-sm:12px;
+  }
+  .btn,.card,.panel,.editor,.legend,.mswitch,.tzwrap,.qcard,.qmsg,.qend,.qpanel,.qmenu .box,.intro .box,#qprog,.head,.bar{
+    -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4)}
+  .qmenu,.intro{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .bar .btn,.mswitch .btn,.ed-row .btn,.ed-pad .btn,.qend .btn,.qpanel .row .btn,.item,.mb,.mq,.qmenu .lv,.legend .li,.panel #gloss .gl,.intro p{
+    -webkit-backdrop-filter:none;backdrop-filter:none}
+
+  /* düğmeler: buzlu cam */
+  .btn,.btn.sm,.btn.test,.ed-row .btn,.ed-pad .btn,.qend .btn,.qpanel .row .btn{border-radius:var(--r-md)}
+  .btn.sm{border-radius:var(--r-sm)}
+  .btn{background:rgba(255,255,255,.10);border:1px solid var(--bd);box-shadow:0 4px 16px rgba(0,0,0,.2);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  .btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.42);transform:translateY(-1px)}
+  .btn[aria-pressed="true"],.mswitch .btn[aria-pressed="true"],.bar .btn[aria-pressed="true"],.mb.sel{
+    background:rgba(236,230,216,.88);color:#10151e;text-shadow:none;border-color:rgba(255,255,255,.7);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+  .btn.test{background:rgba(255,255,255,.2);color:var(--bone);text-shadow:0 1px 2px rgba(0,0,0,.4);
+    border:1px solid rgba(255,255,255,.55);box-shadow:0 0 22px rgba(255,255,255,.16),0 6px 20px rgba(0,0,0,.3)}
+  .btn.test:hover{background:rgba(255,255,255,.3)}
+  .bar,.mswitch{border-radius:var(--r-xl);border:1px solid var(--bd);box-shadow:var(--sh)}
+  .bar .btn,.mswitch .btn{box-shadow:none;border-color:transparent;background:rgba(255,255,255,.08)}
+  .mswitch .btn{background:none}
+  .bar .btn:hover,.mswitch .btn:hover{background:rgba(255,255,255,.18)}
+  .qend .btn.share{background:rgba(37,211,102,.85);border-color:rgba(255,255,255,.4);color:#fff;box-shadow:0 4px 16px rgba(37,211,102,.3)}
+
+  /* WhatsApp: yeşil cam */
+  .wa{border-radius:var(--r-md);background:rgba(37,211,102,.85);border:1px solid rgba(255,255,255,.4)}
+
+  /* yüzeyler */
+  .head,.legend,.tzwrap,.qmsg,#qprog,.card,.panel,.editor,.qcard,.qend,.qpanel,.qmenu .box,.intro .box{border:1px solid var(--bd)}
+  .card{box-shadow:inset 5px 0 0 var(--c,#fff),var(--sh)}
+  .qcard{box-shadow:inset 0 5px 0 var(--c,#fff),var(--sh)}
+  .qmsg.ok{border-color:rgba(47,208,122,.8)} .qmsg.bad{border-color:rgba(255,90,122,.8)}
+  .panel{border-right:0;box-shadow:-12px 0 36px rgba(0,0,0,.35)}
+  .editor{border-bottom:0;box-shadow:0 -10px 36px rgba(0,0,0,.4)}
+  .head,.legend,.tzwrap,#qprog,.qmsg,.qend,.qpanel,.qmenu .box,.intro .box{box-shadow:var(--sh)}
+  .item,.mb,.mq,.qmenu .lv,.legend .li,.panel #gloss .gl,.intro p,.editor select,.editor textarea,.qpanel input{
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);box-shadow:none}
+  .item:hover,.item.active,.qmenu .lv:hover,.mq:hover,.mb:hover{background:rgba(255,255,255,.17);border-color:rgba(255,255,255,.34)}
+  .mb.ok{color:#5cf0a0;background:rgba(47,208,122,.14)} .mb.bad{background:rgba(255,90,122,.28)}
+  .mq.ok{background:rgba(47,208,122,.28)} .mq.bad{background:rgba(255,90,122,.30)}
+  .editor select{color:var(--bone)}
+  .tag,.pl{background:rgba(13,17,23,.5);border-radius:10px;
+    -webkit-backdrop-filter:blur(8px) saturate(1.4);backdrop-filter:blur(8px) saturate(1.4);box-shadow:none}
+  .loupe{border-color:rgba(255,255,255,.8)}
+
+  /* ===== LIGHT BACKGROUND ONLY (cards stay glassmorphic) ===== */
+  html,body{background:#f4f7fc}
+  body{background:radial-gradient(ellipse at 50% 28%,#ffffff 0%,#f3f6fc 45%,#dfe7f4 100%)}
+  .signature{color:#1a2233;opacity:.07}
+
+  /* ===== DARKER GLASS CARDS + BRIGHTER OUTLINES ===== */
+  :root{
+    --tile:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(8,13,24,.66);
+    --bd:rgba(255,255,255,.55);
+  }
+  .tag,.pl{background:rgba(8,13,24,.72);border-width:2px;box-shadow:0 0 10px color-mix(in srgb,var(--c) 55%,transparent)}
+  .card{border:1.5px solid color-mix(in srgb,var(--c,#fff) 90%,#fff);
+    box-shadow:inset 6px 0 0 var(--c,#fff),0 0 18px color-mix(in srgb,var(--c,#fff) 45%,transparent),var(--sh)}
+  .qcard{border:2px solid var(--c,#fff);box-shadow:inset 0 5px 0 var(--c,#fff),0 0 18px color-mix(in srgb,var(--c,#fff) 45%,transparent),var(--sh)}
+  .btn,.bar,.mswitch,.head,.legend,.tzwrap,#qprog,.qmsg,.qend,.qpanel,.panel,.editor,.qmenu .box,.intro .box{border-color:rgba(255,255,255,.55)}
+  .item,.mb,.mq,.qmenu .lv,.legend .li,.panel #gloss .gl,.intro p,.editor select,.editor textarea,.qpanel input{border-color:rgba(255,255,255,.4)}
+  .btn:hover,.item:hover,.item.active,.qmenu .lv:hover,.mq:hover,.mb:hover{border-color:rgba(255,255,255,.85)}
+  .qmsg.ok{border-color:#2fe88a} .qmsg.bad{border-color:#ff6f8d}
+  .mb.ok{border-color:#2fe88a} .mb.bad{border-color:#ff6f8d}
+  .mq.ok{border-color:#2fe88a} .mq.bad{border-color:#ff6f8d}
+  .dot::after{box-shadow:0 0 0 2px #fff,0 0 16px 2px var(--c)}
+
+  /* ===== top-right buttons styled like the bottom bar buttons ===== */
+  .topact{padding:6px;border-radius:var(--r-xl);background:var(--tile);border:1px solid var(--bd);box-shadow:var(--sh);
+    -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4)}
+  .topact .btn,.topact .btn.test,.topact .btn.sm{min-height:44px;padding:0 14px;border-radius:var(--r-md);font-size:14px;font-weight:400;
+    letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.35);color:var(--bone);box-shadow:none;border:1px solid transparent;background:rgba(255,255,255,.08)}
+  .topact .btn:hover{background:rgba(255,255,255,.18);transform:none}
+  .topact .btn[aria-pressed="true"]{background:rgba(236,230,216,.88);color:#10151e;text-shadow:none;border-color:rgba(255,255,255,.7)}
+  .topact .btn[aria-expanded="true"]{border-color:rgba(255,255,255,.55)}
+  .topact .pside,.topact .pside .sub{align-items:stretch}
 </style>
 </head>
 <body>
@@ -451,6 +631,7 @@
   <div class="name">Anatomia</div>
   <div class="track"><span id="bar"></span></div>
   <div class="msg" id="msg">Model yükleniyor</div>
+  <div class="by">Product of OLEG ROMANOVIC</div>
 </div>
 
 <script type="importmap">
@@ -760,8 +941,8 @@ const SKELETON_DEFAULTS = {
   'Os coccygis':{p:[-0.131,1.089,-0.006],n:[-0.853,-0.33,-0.405]},
   'Femur':{p:[0.034,0.818,0.119],n:[0.993,-0.008,0.119]},
   'Patella':{p:[0.043,0.592,0.086],n:[0.852,-0.013,0.523]},
-  'Tibia':{p:[-0.04,0.36,0.113],n:[-0.561,-0.036,0.827]},
-  'Fibula':{p:[0.013,0.396,0.073],n:[0.997,-0.072,-0.037]},
+  'Tibia':{p:[0.013,0.396,0.073],n:[0.997,-0.072,-0.037]},
+  'Fibula':{p:[-0.04,0.36,0.113],n:[-0.561,-0.036,0.827]},
   'Ossa tarsi':{p:[-0.007,0.169,0.07],n:[-0.031,0.995,-0.096]},
   'Ossa metatarsi':{p:[0.047,0.101,0.076],n:[0.494,0.358,-0.792]},
   'Ossa digitorum pedis':{p:[0.122,0.048,0.089],n:[0.765,0.454,-0.456]}
