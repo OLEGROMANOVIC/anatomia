@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#f3f6fc">
+<meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light">
 <title>Anatomia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -478,6 +480,36 @@
   .topact .btn[aria-pressed="true"]{background:rgba(236,230,216,.88);color:#10151e;text-shadow:none;border-color:rgba(255,255,255,.7)}
   .topact .btn[aria-expanded="true"]{border-color:rgba(255,255,255,.55)}
   .topact .pside,.topact .pside .sub{align-items:stretch}
+
+  /* ===== MOBILE + TABLET LAYOUT ===== */
+  :root{color-scheme:only light;--lift:0px}
+  @media (max-width:1024px){
+    :root{--lift:54px}                       /* Netlify rozetinin üstünde kalsın; rozet kapatılırsa 0px yap */
+    .head{top:calc(var(--safe-t) + 10px);left:calc(var(--safe-l) + 12px);padding:6px 12px 7px}
+    .head h1{font-size:20px}
+    .mswitch{top:calc(var(--safe-t) + 10px);left:auto;right:calc(var(--safe-r) + 12px);transform:none;padding:4px}
+    .mswitch .btn{min-height:34px;padding:0 9px;font-size:12.5px}
+    .topact{top:calc(var(--safe-t) + 66px);left:50%;right:auto;transform:translateX(-50%);
+      flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+      width:max-content;max-width:calc(100vw - 24px);padding:5px}
+    .topact .btn,.topact .btn.test,.topact .btn.sm{min-height:40px;padding:0 12px;font-size:13px}
+    .topact .pside{display:contents}
+    .topact .pside.skel-only{display:none}
+    .skeleton-mode .topact .pside.skel-only{display:contents}
+    .topact .pside.open .sub{display:contents}
+    .bar{left:50%;right:auto;transform:translateX(-50%);bottom:calc(var(--safe-b) + 12px + var(--lift))}
+    .wa{bottom:calc(var(--safe-b) + 12px + var(--lift))}
+    .card{bottom:calc(var(--safe-b) + var(--lift) + 72px)}
+    .qcard:not(.drag),.qend{bottom:calc(var(--safe-b) + 28px + var(--lift))}
+    .qmsg:not(.top){bottom:calc(var(--safe-b) + 28px + var(--lift))}
+    .qpanel{bottom:calc(var(--safe-b) + 16px + var(--lift))}
+    .legend{top:calc(var(--safe-t) + 172px);max-height:36vh}
+  }
+  @media (max-width:640px){
+    .head p{display:none}
+    .wa{width:44px;height:44px;left:calc(var(--safe-l) + 12px)}
+    .bar .btn{padding:0 10px;font-size:13px}
+  }
 </style>
 </head>
 <body>
@@ -2414,7 +2446,7 @@ if (window.visualViewport){
   const upd = () => {
     const vv = window.visualViewport;
     const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    qpanel.style.bottom = 'calc(var(--safe-b) + ' + (16 + kb) + 'px)';
+    qpanel.style.bottom = kb ? 'calc(var(--safe-b) + ' + (16 + kb) + 'px)' : 'calc(var(--safe-b) + var(--lift,0px) + 16px)';
   };
   window.visualViewport.addEventListener('resize', upd);
   window.visualViewport.addEventListener('scroll', upd);
