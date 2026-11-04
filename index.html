@@ -180,6 +180,7 @@
   .qend .qs{color:var(--mute);font-size:14px;margin:6px 0 14px;line-height:1.5}
   .qend .row{display:flex;gap:8px}
   .qend .btn{flex:1}
+  .qend .btn.share{width:100%;flex:none;margin-bottom:8px;background:#25d366;color:#fff;border-color:#25d366;font-weight:700}
 
   /* model seçici ve terim notları */
   [hidden]{display:none!important}
@@ -267,6 +268,21 @@
   .intro p b{font-weight:700}
   .intro .btn{margin-top:6px;min-width:130px}
 
+  /* iskelet bölümleri */
+  .pside.skel-only{display:none}
+  .skeleton-mode .pside.skel-only{display:flex}
+  .legend{position:fixed;z-index:6;left:calc(var(--safe-l) + 12px);top:calc(var(--safe-t) + 78px);width:min(66vw,310px);
+    padding:10px 12px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);font-size:13px;line-height:1.35;
+    max-height:60vh;overflow:auto}
+  .legend .lt{font-weight:700;font-size:14.5px}
+  .legend .li{display:flex;gap:8px;margin-top:9px}
+  .legend .sw{flex:none;width:6px;border-radius:3px}
+  .legend .li b{display:block}
+  .legend small{display:block;color:var(--mute);font-size:11.5px}
+  .legend .lh{margin-top:9px;color:var(--mute);font-size:11px;opacity:.85}
+  .testing .legend,.editing .legend{display:none!important}
+  @media (max-width:640px){ .legend{top:calc(var(--safe-t) + 126px);max-height:46vh} }
+
   /* loader / error */
   .loader{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
     background:var(--ink);transition:opacity .5s;padding:24px;text-align:center}
@@ -306,6 +322,7 @@
 <div class="bar">
   <button class="btn" id="bLabels" aria-pressed="false">Etiketler</button>
   <button class="btn" id="bList">Bölgeler</button>
+  <button class="btn" id="bEdit">Düzenle</button>
 </div>
 
 <button class="wa" id="bShare" aria-label="WhatsApp'ta paylaş" title="WhatsApp'ta paylaş">
@@ -321,6 +338,7 @@
   </div>
   <button class="btn" id="bFlip" style="margin-top:14px;width:100%">Model yönü ters ise çevir</button>
   <button class="btn" id="bFlipV" hidden style="margin-top:8px;width:100%">Baş aşağıdaysa dikey çevir</button>
+  <button class="btn" id="bRotY" hidden style="margin-top:8px;width:100%">Modeli 90° döndür (yön düzelt)</button>
 </aside>
 
 <section class="editor" id="editor" aria-label="Konum düzenleyici">
@@ -347,10 +365,18 @@
 <div class="mswitch" id="mswitch" role="group" aria-label="Model seç">
   <button class="btn" data-m="body" aria-pressed="true">Vücut</button>
   <button class="btn" data-m="humerus" aria-pressed="false">Humerus</button>
+  <button class="btn" data-m="skeleton" aria-pressed="false">İskelet</button>
 </div>
 
 <div class="topact" id="topact">
   <button class="btn test" id="bQuiz">KENDİNİ TEST ET</button>
+  <div class="pside skel-only" id="gside">
+    <button class="btn sm" id="bParts" aria-expanded="false">Bölümleri göster</button>
+    <div class="sub">
+      <button class="btn sm" data-v="axis" aria-pressed="false">Axiale / Appendiculare</button>
+      <button class="btn sm" data-v="girdle" aria-pressed="false">Kavşaklar ve serbest kısımlar</button>
+    </div>
+  </div>
   <div class="pside" id="pside">
     <button class="btn sm" id="bPlanes" aria-expanded="false">Düzlem seç</button>
     <div class="sub">
@@ -359,6 +385,11 @@
       <button class="btn sm" data-k="tra" aria-pressed="false">Transversal</button>
     </div>
   </div>
+</div>
+<div class="legend" id="legend" hidden>
+  <div class="lt" id="lgT"></div>
+  <div id="lgBody"></div>
+  <div class="lh">Yanlış renklenen kemiğe dokun: grubu değişir</div>
 </div>
 <div class="tzwrap" id="tzwrap"><input type="range" id="tzRange" min="0" max="2" step="0.005" aria-label="Transvers düzlem yüksekliği"></div>
 <div class="loupe" id="loupe" aria-hidden="true"><canvas id="loupeC" width="260" height="260"></canvas></div>
@@ -404,6 +435,7 @@
 <div class="qend" id="qend">
   <div class="qt">Tebrikler!</div>
   <div class="qs" id="qStats"></div>
+  <button class="btn share" id="qShare">WhatsApp'ta skoru paylaş</button>
   <div class="row"><button class="btn" id="qAgain">Tekrar</button><button class="btn" id="qMode">Mod seç</button><button class="btn" id="qDone">Çık</button></div>
 </div>
 
@@ -475,32 +507,32 @@ const BODY_REGIONS = [
 /* Varsayılan konumlar (düzenleyiciden dışa aktarılan değerler).
    Kullanıcı düzenlemesi (localStorage) bunların üzerine yazar. */
 const DEFAULTS = {
-  'Caput':{p:[0.103,1.873,0.652],n:[0.954,0.284,0.099]},
-  'Collum':{p:[0.029,1.652,0.653],n:[0.987,-0.156,-0.04]},
-  'Acromion':{p:[-0.119,1.614,0.834],n:[-0.606,0.611,0.509]},
-  'Thorax':{p:[0.069,1.51,0.669],n:[0.871,0.33,-0.363]},
-  'Brachium':{p:[-0.01,1.387,0.917],n:[0.472,0.204,0.858]},
-  'Cubitus':{p:[0.086,1.238,0.147],n:[0.758,0.329,0.563]},
-  'Antebrachium':{p:[0.005,1.152,0.971],n:[0.992,0.125,0.01]},
+  'Caput':{p:[0.136,1.918,0.008],n:[0.95,0.309,0.045]},
+  'Collum':{p:[0.074,1.687,0.006],n:[0.709,-0.705,-0.034]},
+  'Acromion':{p:[-0.005,1.631,0.227],n:[0.161,0.936,0.313]},
+  'Thorax':{p:[0.103,1.555,0.004],n:[0.833,0.384,-0.398]},
+  'Brachium':{p:[0.041,1.399,0.268],n:[0.873,0.189,0.45]},
+  'Cubitus':{p:[0.03,1.251,0.29],n:[0.888,0.278,-0.367]},
+  'Antebrachium':{p:[0.075,1.117,0.329],n:[0.916,-0.012,-0.401]},
   'Manus':{p:[0.099,0.917,0.298],n:[0.62,-0.09,0.78]},
-  'Palma':{p:[0.045,0.871,0.322],n:[0.882,0.077,0.465]},
-  'Digitus manus':{p:[-0.346,0.814,-0.993],n:[-0.518,-0.12,0.847]},
-  'Abdomen':{p:[0.11,1.257,0.664],n:[0.988,-0.061,-0.141]},
-  'Pelvis':{p:[0.118,1.033,0.654],n:[0.984,0.154,-0.096]},
-  'Femur':{p:[0.073,0.777,0.83],n:[0.885,-0.219,0.41]},
-  'Genu':{p:[0.03,0.568,0.803],n:[0.945,-0.207,0.253]},
-  'Crus':{p:[-0.012,0.362,0.829],n:[0.986,-0.149,0.08]},
-  'Tarsus':{p:[-0.005,0.124,0.825],n:[0.757,0.577,0.306]},
-  'Pes':{p:[0.125,0.039,0.877],n:[0.631,0.776,0.029]},
-  'Digitus pedis':{p:[0.185,0.018,0.831],n:[1,-0.021,0.018]},
-  'Scapula':{p:[-0.06,1.544,-0.937],n:[-0.062,0.631,-0.774]},
-  'Triceps brachii':{p:[0.129,1.402,-0.415],n:[0.835,0.004,-0.55]},
-  'Vertebrae':{p:[0.001,1.281,-0.995],n:[0.208,0.119,-0.971]},
-  'Gluteus':{p:[0.138,1.011,-0.157],n:[0.995,-0.096,0.032]},
-  'Omos':{p:[0.05,1.533,0.124],n:[0.227,0.31,0.923]},
-  'Planta':{p:[0.134,0.034,-0.016],n:[0.994,0.091,-0.054]},
+  'Palma':{p:[0.11,0.891,-0.419],n:[0.895,0.39,0.216]},
+  'Digitus manus':{p:[0.119,0.816,-0.453],n:[0.519,-0.355,0.778]},
+  'Abdomen':{p:[0.145,1.295,0.001],n:[0.956,0.103,-0.276]},
+  'Pelvis':{p:[0.141,1.034,0.031],n:[0.965,-0.022,0.262]},
+  'Femur':{p:[0.125,0.806,0.139],n:[0.96,-0.264,-0.095]},
+  'Genu':{p:[0.056,0.591,0.167],n:[0.894,-0.423,0.146]},
+  'Crus':{p:[0.012,0.4,0.191],n:[0.99,-0.127,0.066]},
+  'Tarsus':{p:[-0.002,0.169,0.167],n:[0.865,0.406,-0.296]},
+  'Pes':{p:[0.052,0.103,0.199],n:[0.58,0.724,0.372]},
+  'Digitus pedis':{p:[0.149,0.036,0.223],n:[0.708,0.634,0.31]},
+  'Scapula':{p:[-0.159,1.584,-0.12],n:[-0.84,0.542,-0.034]},
+  'Triceps brachii':{p:[-0.118,1.436,-0.308],n:[-0.763,0.197,-0.616]},
+  'Vertebrae':{p:[-0.158,1.525,-0.003],n:[-0.774,0.006,0.633]},
+  'Gluteus':{p:[-0.148,1.062,-0.028],n:[-0.887,0.275,0.372]},
+  'Omos':{p:[-0.024,1.615,-0.279],n:[0.289,0.799,-0.528]},
+  'Planta':{p:[0.02,0.026,-0.214],n:[-0.294,-0.953,0.074]},
   'Dorsum':{p:[0.142,1.463,-0.156],n:[0.964,0.085,0.252]},
-  'Truncus':{p:[0.039,1.565,0.737],n:[0.756,0.592,0.279]}
+  'Truncus':{p:[0.143,1.481,0.024],n:[0.911,0.29,-0.293]}
 };
 /* ---------- Genel osteoloji terimleri (ders görselleri) ---------- */
 const GLOSS_IMG = [
@@ -536,7 +568,7 @@ function boneOf(r){
   if (/\(ön\)$/.test(r.latin)) return 'L';
   return RIGHT_ONLY.has(r.latin) ? 'R' : 'L';
 }
-function termNote(r){ return (r.t || []).map(k => k + ': ' + (GLOSS_ALL[k] || '')).join('  ·  '); }
+function termNote(r){ const t = (r.t || []).map(k => k + ': ' + (GLOSS_ALL[k] || '')).join('  ·  '); return [r.d, t].filter(Boolean).join('  —  '); }
 
 /* ---------- Humerus bölgeleri ----------
    Model boyu 2 birime normalize edilir (distal uç y=0, proksimal uç y=2).
@@ -619,10 +651,127 @@ const HUMERUS_DEFAULTS = {
   'Condylus humeri':{p:[0.128,0.117,0.508],n:[0.797,0.464,-0.386]}
 };
 
+/* ---------- İskelet modeli: etiketler (kemikler_1.pdf + kemikler_2.pdf) ----------
+   Konumlar YAKLAŞIKTIR. "Düzenle" ile sürükleyip yerleştirin, "Kopyala" ile dışa aktarın.
+   Satır: [latin, türkçe, grup, yüz, x, y, bayrak(p=çift taraflı, m=orta hat), açıklama] */
+const SK_COL = ['#3b8cff','#2fd07a','#b57cff','#ff8a1f','#ff5a7a','#e8c43a','#1fc7c7','#e0405e','#4aa3ff','#ff5ab8'];
+const SK_ALT = {
+  'Os scaphoidem':['Os scaphoideum'], 'Os psiforme':['Os pisiforme'], 'Os triquetrum':['Os triquetrum'],
+  'Tuberositas tibiae':['Tuberositas tibia'], 'Cavitas glenoidalis':['Cavitas glenoidalis scapulae']
+};
+const SK_RAW = [
+ ['Cranium','Kafatası',0,'front',0,0.955,'m',"Kafatası kemikleri yassı kemiklerdir (ossa plana). Dış ve iç yüzü kompakt kemik, orta kısmı (diploe) süngerimsi kemiktir. Cranium toplam 22 kemiktir."],
+ ['Columna vertebralis','Omurga',1,'back',0,0.66,'m',"26 kemikten oluşur. Omurlar düzensiz kemiklerdir (ossa irregularia). Skeleton axiale: baştan pelvisin altına uzanan sütun."],
+ ['Costae','Kaburgalar',1,'front',-0.06,0.715,'p',"Costae ve sternum birlikte 25 kemiktir. Göğüs boşluğundaki organları korur."],
+ ['Sternum','Göğüs kemiği',1,'front',0,0.745,'m',"Clavicula iç ucuyla sternum ile eklem yapar."],
+ ['Clavicula','Köprücük kemiği',2,'front',-0.07,0.822,'p',"Yatık S şeklindedir. İç ucu sternum, dış ucu akromion ile eklem yapar. Üst yüzü düz, alt yüzü pürüzlüdür. 15-17 cm; deri altında hissedilir. Vücutta en erken kemikleşmeye başlar, en geç tamamlanır."],
+ ['Scapula','Kürek kemiği',2,'back',-0.075,0.765,'p',"Sırtta, üçgen şekilli, 2 yüzlü, 3 kenarlı, 3 köşeli yassı kemiktir. Kaburgalara bakan yüzü facies costalis, arkaya bakan yüzü facies dorsalis."],
+ ['Humerus','Kol kemiği',3,'front',-0.145,0.70,'p',"Üst extremitenin en uzun ve en kalın kemiğidir. İki uç ve bir gövdesi vardır."],
+ ['Radius','Döner kemik',4,'front',-0.195,0.56,'p',"Ön kolun dış (başparmak) tarafındadır. 2 ucu ve bir gövdesi vardır; uçları gövdeden kalındır. Gövdenin 3 yüzü ve 3 kenarı var."],
+ ['Ulna','Dirsek kemiği',4,'front',-0.172,0.56,'p',"Ön kolun iç (küçük parmak) tarafındadır. Üst ucu alt ucundan kalındır."],
+ ['Ossa carpi','El bileği kemikleri',5,'front',-0.205,0.478,'p',"El iskeleti 27 kemiktir: 8 el bileği, 5 el tarağı, 14 parmak. Karpal kemikler kısa kemiklerdir (ossa brevia), iki sıradır."],
+ ['Ossa metacarpi','El tarağı kemikleri',5,'front',-0.215,0.445,'p',"5 adet ince ve uzun kemik; dıştan içe I-V diye adlandırılır. Proksimal uçları karpalların distal sırası ile, distal uçları parmak kemikleri ile eklem yapar."],
+ ['Ossa digitorum manus','El parmak kemikleri',5,'front',-0.225,0.40,'p',"Toplam 14 falanks: başparmakta 2, diğerlerinde 3 tane."],
+ ['Os coxae','Kalça kemiği',6,'front',-0.085,0.52,'p',"Pelvisin ön ve yan duvarını oluşturur. Os ilii, os pubis ve os ischii kaynaşmasıyla oluşur; bu kaynaşma bölgesi acetabulum içinde Y şeklinde kıkırdak olarak görülür."],
+ ['Os sacrum','Sakrum',6,'back',0,0.52,'m',"Pelvisin arka duvarında iki kalça kemiği arasındadır. Pelvis iskeleti 4 kemiktir: çift os coxae, os sacrum, os coccygis."],
+ ['Os coccygis','Koksiks',6,'back',0,0.455,'m',"Sakrumun alt ucuna tutunur; alt ucu serbest sonlanır. Doğumda arkaya itilerek apertura pelvis inferior genişler."],
+ ['Femur','Uyluk kemiği',7,'front',-0.075,0.37,'p',"Vücudun en uzun ve en kalın kemiği; vücut boyunun 1/4 ü. Gövdesi (corpus femoris) öne konvekstir."],
+ ['Patella','Diz kapağı kemiği',8,'front',-0.055,0.29,'p',"Üçgen şekilli; tabanı yukarıda. M. quadriceps femoris kirişi içindedir; vücudun en büyük sesamoid kemiğidir ve kasın kuvvetini arttırır."],
+ ['Tibia','Kaval kemik',8,'front',-0.052,0.18,'p',"Bacağın iç tarafında, kalın olan kemik; femurdan sonra en uzun kemiktir. Gövdesi 3 yüzlü, 3 kenarlı; ön kenarı keskin ve deri altında hissedilir."],
+ ['Fibula','Kamış kemik',8,'front',-0.08,0.19,'p',"Bacağın dış tarafında ince uzun kemik; üst ucu diz eklemine katılmaz, alt ucu ayak bileği ile eklem yapar."],
+ ['Ossa tarsi','Ayak bileği kemikleri',9,'front',-0.055,0.04,'p',"Ayakta 26 kemik vardır: 7 tarsal, 5 metatarsal, 14 parmak. İki sıra: proksimalde talus ve calcaneus."],
+ ['Ossa metatarsi','Ayak tarağı kemikleri',9,'front',-0.055,0.013,'p',"5 adet; içten dışa I-V. Proksimal uçları basis, gövdeleri corpus, distal uçları caput metatarsi."],
+ ['Ossa digitorum pedis','Ayak parmak kemikleri',9,'front',-0.06,0.005,'p',"14 falanks: başparmakta 2, diğerlerinde 3. Basis, corpus ve caput phalangis."]
+];
+const SKELETON_REGIONS = SK_RAW.map(a => ({ latin:a[0], tr:a[1], color:SK_COL[a[2]], side:a[3], x:a[4], y:a[5],
+  pr:a[6].indexOf('p') >= 0, mid:a[6].indexOf('m') >= 0, d:a[7] || '', alt:SK_ALT[a[0]] }));
+
+/* Kemik terimleri (kemikler_1.pdf, "Kemiklerde çok kullanılan terimler") */
+const BONE_TERMS = [['Angulus','Açı, köşe'],['Ala','Kanat'],['Apertura','Açıklık, delik'],['Apex','Tepe, uç'],['Arcus','Kavis, kemer, yay'],
+  ['Axis','Eksen, ikinci boyun omuru'],['Basis','Taban'],['Canalis','Kanal'],['Extremitas','Taraf'],['Facies','Yüz'],['Fissura','Yarık, çatlak'],
+  ['Foramen','Delik'],['Fossa','Çukur'],['Fossula','Çukurcuk'],['Fovea','Çukur'],['Fundus','Dip'],['Impressio','İz, çöküntü'],['Incisura','Çentik'],
+  ['Lamina','Yaprak, levha'],['Linea','Çizgi, hat'],['Margo','Kenar, kıyı'],['Meatus','Yol, geçit'],['Os (ossis)','Kemik'],['Paries','Duvar'],
+  ['Pars','Bölüm, parça'],['Pelvis','Leğen'],['Porus','Geçit, delik, açıklık'],['Processus','Çıkıntı'],['Recessus','Çukur, girinti'],['Septum','Bölme'],
+  ['Sinus','Boşluk'],['Spina','Diken şeklinde çıkıntı'],['Sulcus','Oluk'],['Trigonum','Üçgen'],['Trochlea','Makara'],['Tuba','Boru'],['Tuberculum','Tümsekcik']];
+
+/* Kemik bilgisi soruları (ilk şık doğru; gösterirken karışır) */
+const BONE_QS = [
+ { q:'Yeni doğan bir çocukta kaç adet kemik bulunur?', o:['270','206','300','180','250'] },
+ { q:'Erişkin bir insanda toplam kaç kemik bulunur?', o:['206','270','186','226','250'] },
+ { q:'Kemikler erişkinde toplam vücut ağırlığının yaklaşık yüzde kaçıdır?', o:['%15','%5','%25','%40','%60'] },
+ { q:'Kemiklerin anorganik madde oranı yaklaşık hangisidir?', o:['%60-70','%30-40','%10-20','%80-90','%5'] },
+ { q:'Kemikteki anorganik maddelerin en yüksek oranda bulunanı hangisidir?', o:['Kalsiyum fosfat','Sodyum klorür','Magnezyum','Potasyum','Demir'] },
+ { q:'Üst ve alt extremiteye ne ad verilir?', o:['Skeleton appendiculare','Skeleton axiale','Systema articulare','Systema musculare','Ossa irregularia'] },
+ { q:'Aşağıdakilerden hangisi uzun kemiktir (os longum)?', o:['Humerus','Scapula','Patella','Os lunatum','Vertebra'] },
+ { q:'El ve ayak bileği kemikleri hangi kemik grubuna girer?', o:['Ossa brevia (kısa kemikler)','Ossa longa','Ossa plana','Ossa sesamoidea','Ossa pneumatica'] },
+ { q:'Scapula ve kafatası kemikleri hangi gruba örnektir?', o:['Ossa plana (yassı kemikler)','Ossa longa','Ossa brevia','Ossa irregularia','Ossa accessoriae'] },
+ { q:'Omurlar hangi kemik grubuna örnektir?', o:['Ossa irregularia (düzensiz kemikler)','Ossa plana','Ossa longa','Ossa brevia','Ossa sesamoidea'] },
+ { q:'Maxilla ve temporal kemik hangi gruba örnektir?', o:['Ossa pneumatica (havalı kemikler)','Ossa plana','Ossa sesamoidea','Ossa brevia','Ossa accessoriae'] },
+ { q:'Vücudun en büyük sesamoid kemiği hangisidir?', o:['Patella','Calcaneus','Talus','Scapula','Os naviculare'] },
+ { q:'Susamsı (sesamoid) kemiklerle ilgili hangisi doğrudur?', o:['Periosteumları yoktur','Diğer kemiklerle direkt eklem yaparlar','İçlerinde hava boşluğu bulunur','Hepsi uzun kemiktir','Kemikleşme merkezleri kaynaşmaz'] },
+ { q:'Os trigonum ve ossa suturalia hangi gruba örnektir?', o:['Ossa accessoriae (ilave kemikler)','Ossa sesamoidea','Ossa pneumatica','Ossa brevia','Ossa plana'] },
+ { q:'Süngerimsi (spongioz) kemik iskeletin yaklaşık yüzde kaçını oluşturur?', o:['%80','%20','%50','%65','%100'] },
+ { q:'Havers sistemi içermeyen kemik dokusu hangisidir?', o:['Süngerimsi kemik','Kompakt kemik','Periosteum','Eklem kıkırdağı','Sharpey lifleri'] },
+ { q:'Uzun kemiklerin orta kısmına ne ad verilir?', o:['Diafiz','Epifiz','Metafiz','Periosteum','Endosteum'] },
+ { q:'Epifiz ile diafiz arasındaki (özellikle çocuklarda) kıkırdak bölgeye ne denir?', o:['Metafiz','Diploe','Cavitas medullaris','Endosteum','Periosteum'] },
+ { q:'Kemiğin ekleme katılmayan kısımlarını örten bağ dokusu hangisidir?', o:['Periosteum','Endosteum','Diploe','Metafiz','Cartilago articularis'] },
+ { q:'Cavitas medullaris ve spongioz kemik trabeküllerini örten yapı hangisidir?', o:['Endosteum','Periosteum','Diploe','Sharpey lifi','Havers kanalı'] },
+ { q:'Periosteumdan dış lamellere uzanan kollajen liflere ne denir?', o:['Sharpey lifleri','Havers kanalları','Volkmann kanalları','Trabeküller','Lakünalar'] },
+ { q:'Kemik yıkımından sorumlu, çok nükleuslu hücre hangisidir?', o:['Osteoklast','Osteoblast','Osteosit','Fibroblast','Kondrosit'] },
+ { q:'Kemik yapımından sorumlu hücreler hangisidir?', o:['Osteoblastlar','Osteoklastlar','Osteositler','Adipositler','Mast hücreleri'] },
+ { q:'Uzun kemiklerde görülen kemikleşme tipi hangisidir?', o:['Endokondral kemikleşme','Desmal kemikleşme','Intramembranöz kemikleşme','Primer kemikleşme','Lamelsiz kemikleşme'] },
+ { q:'Vücuttaki kalsiyumun yaklaşık yüzde kaçı kemiklerde depolanır?', o:['%99','%50','%75','%90','%65'] },
+ { q:'D vitamini eksikliğine bağlı kemik gelişim bozukluğuna ne denir?', o:['Raşitizm','Osteoporozis','Gigantizm','Dwarfizm','Akromegali'] },
+ { q:'İleri yaşlarda kemiklerden kalsiyum boşalmasıyla ortaya çıkan durum hangisidir?', o:['Osteoporozis','Raşitizm','Gigantizm','Dwarfizm','Osteoklastoma'] },
+ { q:'Büyüme çağında büyüme hormonu fazlalığı neye neden olur?', o:['Devlik (gigantizm)','Cücelik (dwarfizm)','Raşitizm','Osteoporozis','Hipotiroidi'] },
+ { q:'Columna vertebralis kaç kemikten oluşur (206 kemiğin dağılımında)?', o:['26','24','33','22','30'] },
+ { q:'Erişkinde cranium kaç kemikten oluşur?', o:['22','8','14','26','6'] },
+ { q:'Üst taraf kemikleri toplam kaç adettir?', o:['64','62','58','70','54'] },
+ { q:'Alt taraf kemikleri toplam kaç adettir?', o:['62','64','56','70','60'] },
+ { q:'El iskeleti toplam kaç kemikten oluşur?', o:['27','26','24','30','28'] },
+ { q:'Ayak iskeleti toplam kaç kemikten oluşur?', o:['26','27','24','28','30'] },
+ { q:'Vücutta en erken kemikleşmeye başlayan, en geç kemikleşmesi tamamlanan kemik hangisidir?', o:['Clavicula','Scapula','Femur','Humerus','Sternum'] },
+ { q:'Vücudun en uzun ve en kalın kemiği hangisidir?', o:['Femur','Tibia','Humerus','Fibula','Os coxae'] },
+ { q:'Femurun en çok kırılan bölümü hangisidir?', o:['Collum femoris','Corpus femoris','Trochanter minor','Caput femoris','Condylus lateralis'] },
+ { q:'Ayak bileği kemiklerinin en büyüğü hangisidir?', o:['Calcaneus','Talus','Os cuboideum','Os naviculare','Os cuneiforme mediale'] },
+ { q:'Dirseği yere koyunca yere temas eden çıkıntı hangisidir?', o:['Olecranon','Processus coronoideus','Epicondylus lateralis','Caput radii','Processus styloideus'] },
+ { q:'Os coxae hangi üç kemiğin birleşmesiyle oluşur?', o:['Os ilii, os pubis, os ischii','Os ilii, os sacrum, os coccygis','Os pubis, os sacrum, os ischii','Os ilii, os pubis, os coccygis','Os sacrum, os coccygis, os pubis'] },
+ { q:'Angulus subpubicus hangisinde daha geniştir?', o:['Kadınlarda','Erkeklerde','Çocuklarda','Her ikisinde eşit','Yalnızca yaşlılarda'] },
+ { q:'Büyük pelvis ile küçük pelvis arasındaki sınırı ne oluşturur?', o:['Linea terminalis','Crista iliaca','Linea aspera','Symphysis pubica','Apertura pelvis inferior'] },
+ { q:'Ön kolda dışta (başparmak tarafında) bulunan kemik hangisidir?', o:['Radius','Ulna','Humerus','Fibula','Tibia'] },
+ { q:'Bacakta içte bulunan, daha kalın kemik hangisidir?', o:['Tibia','Fibula','Femur','Patella','Radius'] }
+];
+
+const SKELETON_DEFAULTS = {
+  'Cranium':{p:[0.121,1.952,0.002],n:[0.908,0.418,0.037]},
+  'Columna vertebralis':{p:[-0.012,1.32,-0.028],n:[0.503,0.053,-0.863]},
+  'Costae':{p:[0.112,1.484,0.087],n:[0.5,0.643,0.58]},
+  'Sternum':{p:[0.114,1.564,0.005],n:[0.87,0.421,-0.258]},
+  'Clavicula':{p:[0.045,1.681,0.083],n:[0.782,0.56,0.273]},
+  'Scapula':{p:[-0.118,1.604,-0.12],n:[-0.866,0.085,-0.493]},
+  'Humerus':{p:[-0.024,1.475,-0.193],n:[0.777,-0.074,0.625]},
+  'Radius':{p:[-0.029,1.147,0.27],n:[0.095,0.348,0.933]},
+  'Ulna':{p:[-0.005,1.12,0.219],n:[0.662,0.05,-0.748]},
+  'Ossa carpi':{p:[0.024,0.995,-0.279],n:[0.148,0.125,0.981]},
+  'Ossa metacarpi':{p:[0.058,0.941,-0.288],n:[0.943,0.315,0.105]},
+  'Ossa digitorum manus':{p:[0.078,0.854,-0.297],n:[0.982,0.149,-0.117]},
+  'Os coxae':{p:[-0.059,1.19,0.117],n:[-0.759,-0.205,0.617]},
+  'Os sacrum':{p:[-0.122,1.138,0.014],n:[-0.655,-0.238,-0.717]},
+  'Os coccygis':{p:[-0.131,1.089,-0.006],n:[-0.853,-0.33,-0.405]},
+  'Femur':{p:[0.034,0.818,0.119],n:[0.993,-0.008,0.119]},
+  'Patella':{p:[0.043,0.592,0.086],n:[0.852,-0.013,0.523]},
+  'Tibia':{p:[-0.04,0.36,0.113],n:[-0.561,-0.036,0.827]},
+  'Fibula':{p:[0.013,0.396,0.073],n:[0.997,-0.072,-0.037]},
+  'Ossa tarsi':{p:[-0.007,0.169,0.07],n:[-0.031,0.995,-0.096]},
+  'Ossa metatarsi':{p:[0.047,0.101,0.076],n:[0.494,0.358,-0.792]},
+  'Ossa digitorum pedis':{p:[0.122,0.048,0.089],n:[0.765,0.454,-0.456]}
+};
+
 /* ---------- Modeller ---------- */
 const MODELS = {
   body:    { file:'anatomymodel.glb', title:'Vücut',   kind:'body', regions:BODY_REGIONS,    defaults:DEFAULTS, store:'anatomia-pozisyon-v3', group:null, info:null, flipV:false },
   humerus: { file:'humerus.glb',      title:'Humerus', kind:'bone', regions:HUMERUS_REGIONS, defaults:HUMERUS_DEFAULTS, store:'anatomia-humerus-v3',  group:null, info:null, flipV:false },
+  skeleton:{ file:'skeleton.glb',   title:'İskelet', kind:'skeleton', regions:SKELETON_REGIONS, defaults:SKELETON_DEFAULTS, store:'anatomia-iskelet-v1', group:null, info:null, flipV:false, rotY:0 },
 };
 let curModel = 'body';
 const REGIONS = [];
@@ -639,16 +788,19 @@ const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.3;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x2a3040, 1.1));
+scene.add(new THREE.HemisphereLight(0xffffff, 0x3a4256, 1.6));
 const keyL = new THREE.DirectionalLight(0xffffff, 1.6); keyL.position.set(2.5, 4, 4); scene.add(keyL);
 const backL = new THREE.DirectionalLight(0xffffff, 1.2); backL.position.set(-2.5, 3, -4); scene.add(backL);
 const fillL = new THREE.DirectionalLight(0xbcd0ff, .5); fillL.position.set(-4, 1, 1); scene.add(fillL);
+/* kameradan gelen ışık: model hangi açıdan bakılırsa bakılsın aydınlık kalır */
+const camL = new THREE.DirectionalLight(0xfff0dc, 1.8); scene.add(camL); scene.add(camL.target);
+const camOff = new THREE.Vector3();
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -843,6 +995,7 @@ function loadSaved(){
       REGIONS.forEach(r => { const it = s.items[r.latin]; if (it){ r.p = it.p; r.n = it.n; } });
       if (typeof s.facing === 'number') facing = s.facing;
       if (typeof s.flipV === 'boolean') MODELS[curModel].flipV = s.flipV;
+      if (typeof s.rotY === 'number') MODELS[curModel].rotY = s.rotY;
     }
   } catch (e) {}
 }
@@ -850,7 +1003,7 @@ function save(){
   try {
     const items = {};
     REGIONS.forEach(r => { if (r.p) items[r.latin] = { p:r.p, n:r.n }; });
-    localStorage.setItem(MODELS[curModel].store, JSON.stringify({ facing, flipV: !!MODELS[curModel].flipV, items }));
+    localStorage.setItem(MODELS[curModel].store, JSON.stringify({ facing, flipV: !!MODELS[curModel].flipV, rotY: MODELS[curModel].rotY || 0, items }));
   } catch (e) {}
 }
 
@@ -985,6 +1138,7 @@ function setEditing(on){
     setLabels(prevLabels);
     endDrag();
     buildAxes();
+    if (skel.view){ skPrepare(); skApply(); }
   }
 }
 document.getElementById('bShare').addEventListener('click', () => {
@@ -992,6 +1146,7 @@ document.getElementById('bShare').addEventListener('click', () => {
   window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
 });
 document.getElementById('edClose').addEventListener('click', () => setEditing(false));
+document.getElementById('bEdit').addEventListener('click', () => { if (model) setEditing(true); });
 
 /* ---------- kendini test et modu ---------- */
 /* Ayarlar: tolerans dünya birimindedir (model boyu = 2). Komşu bölgeye yakınlığa göre otomatik daralır. */
@@ -1020,7 +1175,7 @@ const PAIRED = new Set(['Acromion','Omos','Brachium','Cubitus','Antebrachium','M
 const MIDLINE = ['Caput','Collum','Thorax','Abdomen','Pelvis'];
 
 function computeMirrors(){
-  const mid = markers.filter(m => MIDLINE.includes(m.region.latin));
+  const mid = markers.filter(m => m.region.mid || MIDLINE.includes(m.region.latin));
   if (!mid.length) return markers.map(() => null);
   const stat = ax => {
     const v = mid.map(m => m.pos[ax]).sort((a, b) => a - b);
@@ -1029,14 +1184,11 @@ function computeMirrors(){
   const sx = stat('x'), sz = stat('z');
   const ax = sx.spread < sz.spread ? 'x' : 'z';           // yan (sağ-sol) eksen
   const c = (ax === 'x' ? sx : sz).med;                   // orta düzlem
+  quiz.mirAx = ax;
   return markers.map(m => {
-    if (!PAIRED.has(m.region.latin)) return null;
+    if (!(m.region.pr || PAIRED.has(m.region.latin))) return null;
     const p = m.pos.clone(); p[ax] = 2 * c - p[ax];
     const n = m.normal.clone(); n[ax] = -n[ax]; n.normalize();
-    // karşı taraftaki gerçek yüzeye yapıştır
-    raycaster.set(p.clone().addScaledVector(n, 0.3), n.clone().negate());
-    const h = raycaster.intersectObject(model, true);
-    if (h.length && h[0].distance < 0.6) p.copy(h[0].point).addScaledVector(n, 0.006);
     return p;
   });
 }
@@ -1046,6 +1198,7 @@ function unreveal(i){ if (markers[i]) markers[i].el.classList.remove('reveal', '
 function startQuiz(mode){
   if (!model) return;
   quiz.mode = (typeof mode === 'string') ? mode : (quiz.mode || 'easy');
+  if (skel.view) setSkView(null);
   hidePanels();
   if (editing) setEditing(false);
   document.getElementById('cardX').click();      // açık kartı kapat, seçimi temizle
@@ -1064,7 +1217,7 @@ function startQuiz(mode){
   quiz.tol = markers.map((m, i) => {
     let nn = Infinity;
     markers.forEach((o, k) => { if (k !== i) nn = Math.min(nn, m.pos.distanceTo(o.pos)); });
-    const bone = MODELS[curModel].kind === 'bone';
+    const bone = MODELS[curModel].kind !== 'body';
     const lo = bone ? QUIZ.boneMin : QUIZ.tolMin, hi = bone ? QUIZ.boneMax : QUIZ.tolMax;
     return Math.min(hi, Math.max(lo, QUIZ.tolK * nn));
   });
@@ -1124,6 +1277,10 @@ function finishQuiz(){
   const pct = quiz.attempts ? Math.round(quiz.total / quiz.attempts * 100) : 100;
   document.getElementById('qStats').textContent =
     quiz.total + (quiz.mode === 'mcq' ? ' sorunun' : ' terimin') + ' hepsini doğru yaptınız. Deneme: ' + quiz.attempts + ' · Hata: ' + quiz.wrong + ' · İsabet: %' + pct;
+  const MODE_NAMES = { easy:'Kolay', medium:'Orta', hard:'Zor', mcq:'Çoktan seçmeli' };
+  quiz.shareText = 'Anatomia – ' + MODELS[curModel].title + ' · ' + (MODE_NAMES[quiz.mode] || '') + ' testi\n' +
+    '✅ ' + quiz.total + (quiz.mode === 'mcq' ? ' sorunun' : ' terimin') + ' hepsini bildim\n' +
+    'Deneme: ' + quiz.attempts + ' · Hata: ' + quiz.wrong + ' · İsabet: %' + pct + '\n' + location.href;
   qend.classList.add('show');
 }
 
@@ -1135,15 +1292,31 @@ function judge(i, point){
   qcard.classList.add('hide'); resetCardPos();
   const d1 = point.distanceTo(m.pos);
   const pm = quiz.mirror[i];
-  const d2 = pm ? point.distanceTo(pm) : Infinity;
+  let d2 = Infinity;
+  if (pm){                      // simetrik nokta: yanal (sağ-sol) sapma yarı ağırlıkla sayılır, iki kol/bacak birebir simetrik olmayabilir
+    const ax = quiz.mirAx || 'x';
+    const q = point.clone(); q[ax] = pm[ax] + (point[ax] - pm[ax]) * 0.5;
+    d2 = q.distanceTo(pm);
+  }
   const ok = Math.min(d1, d2) <= quiz.tol[i];
   const otherSide = ok && d2 < d1;
   if (!otherSide) reveal(i);
 
   if (ok){
     quiz.solved++; updateProg();
-    showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')' + (otherSide ? ' · karşı taraf' : ''), 'ok');
-    setTimeout(() => { if (run !== quiz.run) return; unreveal(i); nextCard(); }, QUIZ.okMs);
+    showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')', 'ok');
+    // doğru bilince de kamera o bölgeye yakınlaşsın, sonra eski görünüme dönsün
+    const back = { p: camera.position.clone(), t: controls.target.clone() };
+    const tp = otherSide ? pm.clone() : m.pos.clone();
+    const dir0 = m.normal.clone();
+    if (otherSide) dir0[quiz.mirAx || 'x'] *= -1;
+    dir0.y *= 0.3; dir0.normalize();
+    goTo(tp.clone().addScaledVector(dir0, 1.0), tp, QUIZ.travelMs);
+    setTimeout(() => {
+      if (run !== quiz.run) return;
+      goTo(back.p, back.t, QUIZ.travelMs);
+      setTimeout(() => { if (run !== quiz.run) return; unreveal(i); nextCard(); }, QUIZ.travelMs + 100);
+    }, QUIZ.travelMs + 900);
     return;
   }
 
@@ -1230,6 +1403,10 @@ qcard.addEventListener('pointerup', e => {
 document.getElementById('bQuiz').addEventListener('click', () => { if (model) qmenu.classList.add('show'); });
 document.getElementById('qExit').addEventListener('click', endQuiz);
 document.getElementById('qDone').addEventListener('click', endQuiz);
+document.getElementById('qShare').addEventListener('click', () => {
+  const text = quiz.shareText || ('Anatomia testi: ' + location.href);
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+});
 document.getElementById('qAgain').addEventListener('click', () => startQuiz(quiz.mode));
 
 /* ---------- anatomik düzlemler ---------- */
@@ -1247,7 +1424,7 @@ const tzRange = document.getElementById('tzRange');
 const _pv = new THREE.Vector3();
 
 function bodyFrame(){
-  const mid = markers.filter(m => MIDLINE.includes(m.region.latin));
+  const mid = markers.filter(m => m.region.mid || MIDLINE.includes(m.region.latin));
   const stat = ax => {
     const v = mid.map(m => m.pos[ax]).sort((a, b) => a - b);
     return v.length ? { med: v[v.length >> 1], spread: v[v.length - 1] - v[0] } : { med: 0, spread: 0 };
@@ -1257,7 +1434,7 @@ function bodyFrame(){
   const apAx = latAx === 'x' ? 'z' : 'x';                    // ön-arka eksen
   const n = modelInfo.norm || [0.8, 2, 2.2];
   const size = { x:n[0], y:n[1], z:n[2] };
-  const ab = markers.find(m => m.region.latin === 'Abdomen');
+  const ab = markers.find(m => m.region.latin === 'Abdomen' || m.region.latin === 'Columna vertebralis');
   return { latAx, apAx, c:(latAx === 'x' ? sx : sz).med,
            latSize:size[latAx] * 1.12, apSize:size[apAx] * 1.3, h:2.15, yT: ab ? ab.pos.y : 1.2 };
 }
@@ -1303,7 +1480,7 @@ function buildPlanes(){
 
 function updatePlaneLabels(){
   camera.updateMatrixWorld();
-  const show = (planeOn.sag || planeOn.fro || planeOn.tra) && !!model && MODELS[curModel].kind === 'body' && !document.body.classList.contains('testing');
+  const show = (planeOn.sag || planeOn.fro || planeOn.tra) && !!model && MODELS[curModel].kind !== 'bone' && !document.body.classList.contains('testing');
   planeGroup.visible = show;
   const w = window.innerWidth, h = window.innerHeight;
   for (const d of PLANES_DEF){
@@ -1360,7 +1537,7 @@ function buildAxes(){
   axisObjs.forEach(o => o.el.remove()); axisObjs.length = 0;
 
   const f = bodyFrame();
-  const pel = markers.find(m => m.region.latin === 'Pelvis');
+  const pel = markers.find(m => m.region.latin === 'Pelvis' || m.region.latin === 'Os sacrum');
   const center = new THREE.Vector3(); center[f.latAx] = f.c; center.y = pel ? pel.pos.y : 1.05;
   const unit = a => a === 'x' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
   const dirs = { ver:new THREE.Vector3(0, 1, 0), sag:unit(f.apAx), tra:unit(f.latAx) };
@@ -1393,7 +1570,7 @@ function buildAxes(){
 }
 
 function updateAxes(){
-  const show = !!model && MODELS[curModel].kind === 'body' && axisObjs.length > 0 && !document.body.classList.contains('testing');
+  const show = !!model && MODELS[curModel].kind !== 'bone' && axisObjs.length > 0 && !document.body.classList.contains('testing');
   axisGroup.visible = show;
   const w = window.innerWidth, h = window.innerHeight;
   for (const o of axisObjs){
@@ -1479,6 +1656,218 @@ document.getElementById('edSwap').addEventListener('click', () => {
   const want = Math.sign(m.pos.z) > 0 ? -1 : 1;
   const h = nearestSurface(new THREE.Vector3(-m.pos.x, m.pos.y, -m.pos.z), want);
   if (h){ setPoint(activeIdx, h.point, h.normal); save(); }
+});
+
+/* ---------- İskelet bölümleri: modelin üzerinde öğretici renklendirme ----------
+   Her kemik (birbirine bağlı yüzey parçası) en yakın "tohum" bölgesine göre bir gruba atanır.
+   Tohumlar, senin yerleştirdiğin etiket konumlarından üretilir. Hatalı olan kemiğe dokunarak grubunu değiştirebilirsin. */
+const SKG = ['Kafatası (Cranium)','Omurga, sakrum, koksiks','Göğüs (kaburgalar, sternum)','Clavicula','Scapula','Humerus','Radius ve ulna','El kemikleri',
+  'Os coxae (kalça kemiği)','Femur','Patella','Tibia ve fibula','Ayak kemikleri'];
+const SKG_RE = [/skull|crani|mandib|maxill|teeth|tooth|(?:^|[^a-z])jaw|temporal|frontal|parietal|occip|hyoid|sphen|zygom/i,
+  /vertebra|spine|spinal|sacrum|coccy|lumbar|cervical|atlas/i, /(?:^|[^a-z])ribs?(?:[^a-z]|$)|costa|sternum|thorax/i, /clavic/i, /scapul/i, /humer/i,
+  /(?:^|[^a-z])radius|(?:^|[^a-z])ulna/i, /carpal|metacarp|(?:^|[^a-z])hand|finger/i, /pelvi|coxa|ilium|iliac|ischi|pubis|(?:^|[^a-z])hip(?:[^a-z]|$)/i,
+  /femur|thigh/i, /patell/i, /tibia|fibula/i, /(?:^|[^a-z])foot|tarsal|talus|calcan|metatars|(?:^|[^a-z])toes?(?:[^a-z]|$)/i];
+const SK_VIEWS = {
+  axis:{ title:'Skeleton axiale ve appendiculare', cls:[0,0,0,1,1,1,1,1,1,1,1,1,1], items:[
+    { c:'#3b8cff', n:'Skeleton axiale', s:'Baştan başlayıp pelvisin alt kısmında sona eren sütun.', t:'80 kemik: Cranium 22 · Columna vertebralis 26 · Os hyoideum 1 · Ossicula auditoria 6 · Costae ve sternum 25' },
+    { c:'#ff8a1f', n:'Skeleton appendiculare', s:'Üst ve alt extremite (omuz ve leğen kavşakları dahil).', t:'126 kemik: Ossa membri superioris 64 · Ossa membri inferioris 62' } ] },
+  girdle:{ title:'Kavşaklar ve serbest kısımlar', cls:[0,0,0,1,1,2,2,2,3,4,4,4,4], items:[
+    { c:'#3b8cff', n:'Skeleton axiale', s:'Kafatası, omurga, kaburgalar ve sternum.', t:'Toplam 80 kemik' },
+    { c:'#2fd07a', n:'Cingulum membri superioris (omuz kavşağı)', s:'Clavicula ve scapula. Üst taraf serbest kemiklerini gövdeye bağlar.', t:'' },
+    { c:'#ff8a1f', n:'Pars libera membri superioris', s:'Kol, ön kol ve el: humerus, radius, ulna, el kemikleri.', t:'Ossa manus 27: karpal 8 · metakarpal 5 · parmak 14' },
+    { c:'#b57cff', n:'Cingulum membri inferioris (leğen kavşağı)', s:'Os coxae (os ilii + os pubis + os ischii). Alt tarafı gövdeye bağlar.', t:'Sakrum ve koksiks ile birlikte pelvis iskeletini yapar' },
+    { c:'#ff5ab8', n:'Pars libera membri inferioris', s:'Uyluk, bacak ve ayak: femur, patella, tibia, fibula, ayak kemikleri.', t:'Ossa pedis 26: tarsal 7 · metatarsal 5 · parmak 14' } ] }
+};
+const skel = { meshes:[], ref:null, view:null, over:{}, sig:'', perVertex:false };
+const SK_STORE = 'anatomia-bolum-v1';
+function skLoadOver(){ try { skel.over = JSON.parse(localStorage.getItem(SK_STORE) || '{}') || {}; } catch (e) { skel.over = {}; } }
+function skSaveOver(){ try { localStorage.setItem(SK_STORE, JSON.stringify(skel.over)); } catch (e) {} }
+
+/* kemikleri (bağlı yüzey parçalarını) bul */
+function skBuild(){
+  skel.meshes = [];
+  let mi = 0;
+  model.traverse(o => {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+    const g = o.geometry, pos = g.attributes.position, n = pos.count;
+    const parent = new Int32Array(n); for (let i = 0; i < n; i++) parent[i] = i;
+    const find = a => { while (parent[a] !== a){ parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+    const uni = (a, b) => { a = find(a); b = find(b); if (a !== b) parent[Math.max(a, b)] = Math.min(a, b); };
+    g.computeBoundingBox();
+    const sz = g.boundingBox.getSize(new THREE.Vector3());
+    const q = (Math.max(sz.x, sz.y, sz.z) * 1e-5) || 1e-6;
+    const seen = new Map();
+    for (let i = 0; i < n; i++){
+      const k = Math.round(pos.getX(i) / q) + '_' + Math.round(pos.getY(i) / q) + '_' + Math.round(pos.getZ(i) / q);
+      const f = seen.get(k);
+      if (f === undefined) seen.set(k, i); else uni(i, f);
+    }
+    const idx = g.index;
+    if (idx){ for (let t = 0; t + 2 < idx.count; t += 3){ const a = idx.getX(t); uni(a, idx.getX(t + 1)); uni(a, idx.getX(t + 2)); } }
+    else { for (let t = 0; t + 2 < n; t += 3){ uni(t, t + 1); uni(t, t + 2); } }
+    const comp = new Int32Array(n), ids = new Map(); let nc = 0;
+    for (let i = 0; i < n; i++){ const r = find(i); let c = ids.get(r); if (c === undefined){ c = nc++; ids.set(r, c); } comp[i] = c; }
+    skel.meshes.push({ mesh:o, comp, nc, cg:new Uint8Array(nc), idx:mi++, vg:null });
+  });
+}
+function skNameGroup(o){
+  let s = '';
+  for (let p = o; p; p = p.parent) s += ' ' + (p.name || '');
+  const ms = Array.isArray(o.material) ? o.material : [o.material];
+  ms.forEach(m => { if (m && m.name) s += ' ' + m.name; });
+  const hits = []; SKG_RE.forEach((re, i) => { if (re.test(s)) hits.push(i); });
+  return hits.length === 1 ? hits[0] : -1;
+}
+
+/* tohum çizgileri: etiket konumlarından */
+function skSeeds(){
+  if (!markers.length) return null;
+  const f = bodyFrame(), lat = f.latAx, ap = f.apAx, c = f.c;
+  const need = ['Cranium','Columna vertebralis','Costae','Sternum','Clavicula','Scapula','Humerus','Radius','Ulna','Ossa carpi','Ossa metacarpi',
+    'Ossa digitorum manus','Os coxae','Os sacrum','Os coccygis','Femur','Patella','Tibia','Fibula','Ossa tarsi','Ossa metatarsi','Ossa digitorum pedis'];
+  const P = {};
+  for (const n of need){ const m = markers.find(x => x.region.latin === n); if (!m) return null; P[n] = m.pos.clone(); }
+  const mir = v => { const w = v.clone(); w[lat] = 2 * c - w[lat]; return w; };
+  const side = (v, s) => { const d = Math.sign(v[lat] - c); return (d === s || d === 0) ? v.clone() : mir(v); };
+  const V = (v, dy) => { const w = v.clone(); w.y += dy; return w; };
+  const mk = (l, y, a) => { const w = new THREE.Vector3(); w[lat] = l; w.y = y; w[ap] = a; return w; };
+  const mid = (a, b) => a.clone().add(b).multiplyScalar(0.5);
+  const G = []; for (let i = 0; i < 13; i++) G.push([]);
+  const col = P['Columna vertebralis'], stn = P.Sternum, cra = P.Cranium;
+  const ap0 = (stn[ap] + col[ap]) / 2;
+  G[0].push([cra, mk(c, cra.y - 0.1, ap0 + 0.02)]);
+  G[1].push([P['Os coccygis'], P['Os sacrum'], mk(c, col.y, col[ap]), mk(c, cra.y - 0.2, col[ap])]);
+  G[2].push([mk(c, stn.y + 0.12, stn[ap]), mk(c, stn.y - 0.1, stn[ap])]);
+  const ea = Math.max(Math.abs(P.Costae[lat] - c), 0.08), eb = Math.max((stn[ap] - col[ap]) / 2, 0.05);
+  [0.12, 0, -0.12].forEach(dy => { for (let k = 0; k < 12; k++){ const t = k / 12 * Math.PI * 2;
+    G[2].push([mk(c + ea * Math.cos(t), P.Costae.y + dy, ap0 + eb * Math.sin(t))]); } });
+  [1, -1].forEach(s => {
+    const off = Math.abs(P.Clavicula[lat] - c), cl = P.Clavicula;
+    G[3].push([mk(c + s * off * 0.3, cl.y, cl[ap]), mk(c + s * off, cl.y, cl[ap]), mk(c + s * off * 1.9, cl.y, cl[ap])]);
+    const sc = side(P.Scapula, s); G[4].push([V(sc, 0.06), V(sc, -0.1)]);
+    const H = side(P.Humerus, s), R = side(P.Radius, s), U = side(P.Ulna, s), C = side(P['Ossa carpi'], s);
+    G[5].push([V(H, 0.14), H, mid(H, R)]);
+    G[6].push([mid(H, R), R, C], [mid(H, U), U, C]);
+    G[7].push([C, side(P['Ossa metacarpi'], s), side(P['Ossa digitorum manus'], s)]);
+    const Cx = side(P['Os coxae'], s); G[8].push([V(Cx, 0.07), Cx, V(Cx, -0.14)]);
+    const F = side(P.Femur, s), Pa = side(P.Patella, s), T = side(P.Tibia, s), Fb = side(P.Fibula, s), Ta = side(P['Ossa tarsi'], s);
+    G[9].push([V(F, 0.2), F, V(Pa, 0.05)]);
+    G[10].push([Pa]);
+    G[11].push([V(Pa, -0.04), T, V(Ta, 0.04)], [V(Pa, -0.04), Fb, V(Ta, 0.04)]);
+    G[12].push([Ta, side(P['Ossa metatarsi'], s), side(P['Ossa digitorum pedis'], s)]);
+  });
+  return G;
+}
+const _sa = new THREE.Vector3(), _sb = new THREE.Vector3();
+function skSegD(p, a, b){
+  _sa.subVectors(b, a);
+  const l2 = _sa.lengthSq(); let t = 0;
+  if (l2 > 0){ _sb.subVectors(p, a); t = Math.max(0, Math.min(1, _sb.dot(_sa) / l2)); }
+  _sa.multiplyScalar(t).add(a);
+  return p.distanceToSquared(_sa);
+}
+function skNearest(p, G){
+  let best = 0, bd = Infinity;
+  for (let g = 0; g < G.length; g++){
+    for (const pl of G[g]){
+      if (pl.length === 1){ const d = p.distanceToSquared(pl[0]); if (d < bd){ bd = d; best = g; } continue; }
+      for (let k = 0; k + 1 < pl.length; k++){ const d = skSegD(p, pl[k], pl[k + 1]); if (d < bd){ bd = d; best = g; } }
+    }
+  }
+  return best;
+}
+
+function skPrepare(){
+  if (curModel !== 'skeleton' || !model) return false;
+  if (skel.ref !== model){ skBuild(); skel.ref = model; skel.sig = ''; skLoadOver(); }
+  const G = skSeeds();
+  if (!G){ showMsg('Önce etiket konumlarını yerleştir', 'bad', 2200); return false; }
+  const sig = curModel + (MODELS.skeleton.rotY || 0) + markers.map(m => m.pos.toArray().map(v => v.toFixed(3)).join(',')).join('|');
+  if (sig === skel.sig) return true;
+  skel.sig = sig;
+  model.updateMatrixWorld(true);
+  const total = skel.meshes.reduce((a, M) => a + M.nc, 0);
+  skel.perVertex = total < 8;                 // kemikler ayrı parça değilse noktaları tek tek sınıfla
+  const p = new THREE.Vector3();
+  for (const M of skel.meshes){
+    const pos = M.mesh.geometry.attributes.position, n = pos.count, mesh = M.mesh;
+    const wv = i => { p.fromBufferAttribute(pos, i); if (mesh.isSkinnedMesh && mesh.applyBoneTransform) mesh.applyBoneTransform(i, p); return p.applyMatrix4(mesh.matrixWorld); };
+    if (skel.perVertex){ M.vg = new Uint8Array(n); for (let i = 0; i < n; i++) M.vg[i] = skNearest(wv(i), G); continue; }
+    const nameG = skel.meshes.length >= 6 ? skNameGroup(mesh) : -1;
+    const cnt = new Int32Array(M.nc); for (let i = 0; i < n; i++) cnt[M.comp[i]]++;
+    const stride = new Int32Array(M.nc); for (let c = 0; c < M.nc; c++) stride[c] = Math.max(1, Math.ceil(cnt[c] / 24));
+    const seen = new Int32Array(M.nc), votes = new Uint16Array(M.nc * 13);
+    for (let i = 0; i < n; i++){ const c = M.comp[i]; if (seen[c]++ % stride[c]) continue; votes[c * 13 + skNearest(wv(i), G)]++; }
+    for (let c = 0; c < M.nc; c++){
+      let b = 0; for (let g = 1; g < 13; g++) if (votes[c * 13 + g] > votes[c * 13 + b]) b = g;
+      M.cg[c] = nameG >= 0 ? nameG : b;
+      const o = skel.over[M.idx + ':' + c]; if (o !== undefined) M.cg[c] = o;
+    }
+  }
+  return true;
+}
+function skMats(mesh){ return (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).filter(Boolean); }
+function skApply(){
+  const v = skel.view ? SK_VIEWS[skel.view] : null;
+  const cols = v ? v.cls.map(ci => new THREE.Color(v.items[ci].c)) : null;
+  for (const M of skel.meshes){
+    const g = M.mesh.geometry, n = g.attributes.position.count;
+    if (v){
+      let ca = g.attributes.color;
+      if (!ca || ca.count !== n || ca.itemSize !== 3){ ca = new THREE.BufferAttribute(new Float32Array(n * 3), 3); g.setAttribute('color', ca); }
+      const arr = ca.array;
+      for (let i = 0; i < n; i++){
+        const gi = skel.perVertex ? M.vg[i] : M.cg[M.comp[i]], c = cols[gi];
+        arr[3 * i] = c.r; arr[3 * i + 1] = c.g; arr[3 * i + 2] = c.b;
+      }
+      ca.needsUpdate = true;
+    }
+    skMats(M.mesh).forEach(m => {
+      if (m.userData.vc0 === undefined) m.userData.vc0 = !!m.vertexColors;
+      const want = v ? true : m.userData.vc0;
+      if (m.vertexColors !== want){ m.vertexColors = want; m.needsUpdate = true; }
+    });
+  }
+}
+function renderLegend(){
+  const lg = document.getElementById('legend'), v = skel.view ? SK_VIEWS[skel.view] : null;
+  lg.hidden = !v;
+  if (!v) return;
+  document.getElementById('lgT').textContent = v.title;
+  document.getElementById('lgBody').innerHTML = v.items.map(it =>
+    '<div class="li"><i class="sw" style="background:' + it.c + '"></i><span><b>' + it.n + '</b><small>' + it.s + '</small>' +
+    (it.t ? '<small>' + it.t + '</small>' : '') + '</span></div>').join('');
+}
+const gside = document.getElementById('gside');
+function setSkView(v){
+  if (v && !skPrepare()) return;
+  skel.view = v;
+  gside.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  skApply(); renderLegend();
+}
+document.getElementById('bParts').addEventListener('click', e => {
+  const open = gside.classList.toggle('open');
+  e.currentTarget.setAttribute('aria-expanded', String(open));
+});
+gside.querySelectorAll('[data-v]').forEach(b => b.addEventListener('click', () => setSkView(skel.view === b.dataset.v ? null : b.dataset.v)));
+
+/* kemiğe dokun: grubunu değiştir (hatalı renklendirmeyi düzeltmek için) */
+let skTap = null;
+renderer.domElement.addEventListener('pointerdown', e => { skTap = { x:e.clientX, y:e.clientY, t:performance.now() }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  const tp = skTap; skTap = null;
+  if (!tp || !skel.view || editing || quiz.active || !model) return;
+  if (Math.hypot(e.clientX - tp.x, e.clientY - tp.y) > 6 || performance.now() - tp.t > 450) return;
+  raycaster.setFromCamera(new THREE.Vector2(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1), camera);
+  const hits = raycaster.intersectObject(model, true);
+  if (!hits.length || !hits[0].face) return;
+  const M = skel.meshes.find(m => m.mesh === hits[0].object);
+  if (!M) return;
+  if (skel.perVertex){ showMsg('Bu modelde kemikler ayrı parça değil, tek tek değiştirilemez', 'info', 2200); return; }
+  const c = M.comp[hits[0].face.a], v = SK_VIEWS[skel.view];
+  const next = (M.cg[c] + 1) % 13;
+  M.cg[c] = next; skel.over[M.idx + ':' + c] = next; skSaveOver(); skApply();
+  showMsg(SKG[next] + '  →  ' + v.items[v.cls[next]].n, 'info', 2200);
 });
 
 /* ---------- giriş yönergesi ---------- */
@@ -1728,7 +2117,7 @@ function submitType(giveUp){
   mk.el.classList.remove('quizq'); mk.el.classList.add('reveal', 'active'); quiz.qMark = i;
   const dir = mk.normal.clone(); dir.y *= 0.3; dir.normalize();
   goTo(mk.pos.clone().addScaledVector(dir, 1.0), mk.pos.clone(), 900);
-  if (!giveUp && typed === norm(r.latin)){
+  if (!giveUp && (typed === norm(r.latin) || (r.alt || []).some(a => norm(a) === typed))){
     quiz.solved++; updateProg();
     showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')', 'ok'); advance(2000);
   } else {
@@ -1765,6 +2154,7 @@ const mqQ = document.getElementById('mqQ'), mqOpts = document.getElementById('mq
 const opts5 = (correct, wrongs) => [correct, ...shuffle(wrongs.filter(x => x !== correct)).slice(0, 4)];   // 0. şık doğru, gösterirken karışır
 
 function buildMcq(){
+  if (curModel === 'skeleton') return shuffle(BONE_QS).slice(0, 15).map(q => ({ q:q.q, o:q.o.slice() }));
   const names = ANAT_TYPES.map(t => t.n), descs = ANAT_TYPES.map(t => t.d);
   const must = [
     { q:'Anatomi sözcüğünün Latince karşılığı hangisidir?',
@@ -1853,6 +2243,7 @@ if (window.visualViewport){
 let introShown = false;
 function applyFlip(M){
   model.rotation.z = M.flipV ? Math.PI : 0;       // başı aşağıdaysa dikey çevir (y -> 2 - y)
+  model.rotation.y = (M.rotY || 0) * Math.PI / 2;   // iskelet: yatay yön düzeltme
   model.position.y = M.flipV ? 2 : 0;
   model.updateMatrixWorld(true);
 }
@@ -1860,7 +2251,7 @@ function activateModel(M){
   if (model) scene.remove(model);
   model = M.group; modelInfo = M.info;
   scene.add(model);
-  facing = 1; M.flipV = false;
+  facing = 1; M.flipV = false; M.rotY = 0;
   loadSaved();
   applyFlip(M);
   cloud = null;
@@ -1877,16 +2268,20 @@ function activateModel(M){
 function switchModel(k){
   if (k === curModel && model) return;
   if (editing) setEditing(false);
+  if (skel.view) setSkView(null);
   document.getElementById('cardX').click();
   closePanel();
   curModel = k;
   const M = MODELS[k];
   document.body.classList.toggle('bone-mode', M.kind === 'bone');
+  document.body.classList.toggle('skeleton-mode', M.kind === 'skeleton');
   document.querySelectorAll('#mswitch [data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === k)));
   REGIONS.length = 0; REGIONS.push(...M.regions);
   applyDefaults();
   buildList(); buildEdSel();
-  document.getElementById('gloss').hidden = M.kind !== 'bone';
+  document.getElementById('gloss').hidden = M.kind === 'body';
+  document.getElementById('bRotY').hidden = M.kind !== 'skeleton';
+  document.querySelector('#qmenu [data-lv="mcq"] span').textContent = k === 'skeleton' ? 'Kemik bilgisi soruları (sayılar, yapı, görevler) · ayrı grup' : 'Anatomi çeşitleri ve Dissectio · ayrı grup';
   document.getElementById('bFlipV').hidden = M.kind !== 'bone';
   document.getElementById('edSwap').hidden = M.kind !== 'bone';
   loadModel(M);
@@ -1907,7 +2302,23 @@ document.getElementById('bFlipV').addEventListener('click', () => {
 });
 
 document.getElementById('glossList').innerHTML = GLOSS_IMG.map(g =>
-  '<div class="gl"><b>' + g.label + '</b><span>' + g.tr + '</span></div>').join('');
+  '<div class="gl"><b>' + g.label + '</b><span>' + g.tr + '</span></div>').join('') +
+  '<h3 style="margin:16px 0 8px;font-size:16px">Kemiklerde çok kullanılan terimler</h3>' +
+  BONE_TERMS.map(t => '<div class="gl"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>').join('');
+
+document.getElementById('bRotY').addEventListener('click', () => {
+  const M = MODELS[curModel];
+  if (!model || M.kind === 'bone') return;
+  M.rotY = ((M.rotY || 0) + 1) % 4;
+  REGIONS.forEach(r => { if (r.p){ r.p = [r.p[2], r.p[1], -r.p[0]]; r.n = [r.n[2], r.n[1], -r.n[0]]; } });
+  applyFlip(M);
+  cloud = null;
+  buildMarkers(); save();
+  if (skel.view){ skPrepare(); skApply(); }
+  if (activeIdx >= 0) select(activeIdx, false);
+  const v = defaultView(1); goTo(v.pos, v.target);
+  closePanel();
+});
 
 loadModel(MODELS.body);
 
@@ -1934,7 +2345,7 @@ function clearLabel(m){
 }
 function layoutLabels(){
   const on = markersEl.classList.contains('labels-on') && !document.body.classList.contains('testing') &&
-             MODELS[curModel].kind === 'bone';      // sütun düzeni yalnızca kemik modelinde; vücutta eski yerleşim
+             MODELS[curModel].kind !== 'body';      // sütun düzeni yalnızca kemik modelinde; vücutta eski yerleşim
   const vis = on ? markers.filter(m => !m.el.classList.contains('off') && m.sx !== undefined) : [];
   const visSet = new Set(vis);
   for (const m of markers){
@@ -2011,6 +2422,9 @@ function frame(now){
     if (k >= 1) tween = null;
   }
   controls.update();
+  camOff.set(0.6, 0.9, 0).applyQuaternion(camera.quaternion);
+  camL.position.copy(camera.position).add(camOff);
+  camL.target.position.copy(controls.target);
   updatePlaneLabels();
   updateAxes();
   renderer.render(scene, camera);
