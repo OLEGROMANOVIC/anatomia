@@ -907,6 +907,24 @@
   .loader{background:none !important}
   #loadBg{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0}
   .loader>*:not(canvas){position:relative;z-index:1}
+  /* ===== TEST MODU MENÜSÜ: telefonda hepsi sığar, renkler canlı ve opak (karartılamaz) ===== */
+  .qgrid{flex:none}
+  .qm{background:linear-gradient(145deg,color-mix(in srgb,var(--mc) 82%,#ffffff),var(--mc) 55%,color-mix(in srgb,var(--mc) 78%,#000000)) !important;
+    -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+    box-shadow:0 10px 26px rgba(0,0,0,.22),0 0 0 1px rgba(255,255,255,.55) inset !important}
+  .qm::after{display:none}
+  /* menü açıkken arkadaki arayüz gizlenir, karışıklık olmasın */
+  body:has(.qmenu.show) :is(.mswitch,.topact,.wa,.ig,.gm,.card,.doc,.tutor,.legend,.tzwrap,#markers){opacity:0 !important;pointer-events:none !important}
+  @media (max-width:639px){
+    .qmenu{padding:12px}
+    .qmenu .qgrid{width:calc(100vw - 24px) !important;max-width:420px !important;max-height:calc(100dvh - 24px) !important;
+      padding:4px !important;margin:0 !important;gap:10px !important}
+    .qmenu .qm{flex:0 0 calc((100% - 10px) / 2) !important;width:calc((100% - 10px) / 2) !important;aspect-ratio:1 / .95 !important;
+      padding:8px !important;gap:5px !important;border-radius:20px !important}
+    .qmenu .qm svg{width:38px !important;height:38px !important}
+    .qmenu .qm b{font-size:14px !important;line-height:1.1}
+    .qmenu .qm span{font-size:10.5px !important;line-height:1.2}
+  }
 </style>
 </head>
 <body>
