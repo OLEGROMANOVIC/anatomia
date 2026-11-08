@@ -925,6 +925,10 @@
     .qmenu .qm b{font-size:14px !important;line-height:1.1}
     .qmenu .qm span{font-size:10.5px !important;line-height:1.2}
   }
+
+  /* ===== DOKUNMATİK DÖNDÜRME FIX: noktalar artık dokunuşu yutmaz; dokunma canvas'a gider, nokta seçimi canvas'tan yapılır ===== */
+  .dot{pointer-events:none !important}
+  .editing .dot{pointer-events:auto !important}
 </style>
 </head>
 <body>
@@ -2234,6 +2238,24 @@ qcard.addEventListener('pointerup', e => {
   const hits = raycaster.intersectObject(model, true);
   if (!hits.length){ resetCardPos(); showMsg('Kartı modelin üzerine bırakın', 'info', 1400); return; }
   judge(quiz.cur, hits[0].point);
+});
+
+/* nokta seçimi: noktalar dokunuşu yutmasın diye (döndürme modelin üzerinden de çalışsın) kısa dokunuşta en yakın noktayı canvas'tan bul */
+let mkTap = null;
+renderer.domElement.addEventListener('pointerdown', e => { mkTap = { x:e.clientX, y:e.clientY, t:performance.now(), id:e.pointerId }; });
+renderer.domElement.addEventListener('pointercancel', () => { mkTap = null; });
+renderer.domElement.addEventListener('pointerup', e => {
+  const tp = mkTap; mkTap = null;
+  if (!tp || tp.id !== e.pointerId || editing || quiz.active || !markers.length) return;
+  if (Math.hypot(e.clientX - tp.x, e.clientY - tp.y) > 8 || performance.now() - tp.t > 500) return;
+  const R = e.pointerType === 'mouse' ? 16 : 24;
+  let best = null, bd = R;
+  for (const m of markers){
+    if (m.el.classList.contains('off') || m.sx === undefined) continue;
+    const d = Math.hypot(m.sx - e.clientX, m.sy - e.clientY);
+    if (d < bd){ bd = d; best = m; }
+  }
+  if (best) best.el.querySelector('.dot').click();
 });
 
 document.getElementById('bQuiz').addEventListener('click', () => { if (model) qmenu.classList.add('show'); });
