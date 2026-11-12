@@ -3921,7 +3921,6 @@ function switchModel(k){
   document.getElementById('gloss').hidden = M.kind === 'body' || M.kind === 'muscle';
   document.getElementById('bRotY').hidden = M.kind !== 'skeleton' && M.kind !== 'muscle';
   document.body.classList.toggle('muscle-mode', M.kind === 'muscle');
-  document.getElementById('bEdit').hidden = M.kind !== 'muscle';   // Düzenle: kas modelinde nokta konumlarını ayarlamak için
   setJointView(0);
   document.getElementById('bFlipV').hidden = M.kind !== 'bone';
   document.getElementById('edSwap').hidden = M.kind !== 'bone';
