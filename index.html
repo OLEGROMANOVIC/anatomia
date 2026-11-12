@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,500;1,700&family=Nunito:wght@700;800;900&family=Rubik:wght@400;500&display=swap" rel="stylesheet">
 <link rel="preload" href="anatomymodel.glb" as="fetch" crossorigin>
+<link rel="preload" href="doctor.glb" as="fetch" crossorigin>
 <style>
   :root{
     --ink:#0d1117;
@@ -943,6 +944,15 @@
   .fabface{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;border-radius:16px}
 
   /* ===== KAS MODELİ: işaretli nokta yok; noktaya bağlı test modları gizli ===== */
+
+  /* ===== DOKTOR 3B: resimlerin yerine canlı model (doctor.glb yüklenince) ===== */
+  .has-doc{position:relative}
+  .has-doc>img,.has-doc>.eye{visibility:hidden}
+  .has-doc>canvas.dcv{position:absolute;left:-35%;top:-6%;width:170%;height:112%;pointer-events:none;display:block}
+  .loader .name.has-doc{width:min(64vw,280px);height:min(78vw,330px);line-height:normal}
+  .loader .name.has-doc>img{display:none}
+  .loader .name.has-doc>canvas.dcv{left:0;top:0;width:100%;height:100%}
+  .loader .name.has-doc ~ .track{margin-top:6px}
 </style>
 </head>
 <body>
@@ -1167,6 +1177,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { clone as skClone } from 'three/addons/utils/SkeletonUtils.js';
 
 
 /*
@@ -2753,6 +2764,92 @@ draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/li
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 loader.setMeshoptDecoder(MeshoptDecoder);
+
+/* ---------- DOKTOR (doctor.glb): yükleme ekranında ve tanıtımda canlı 3B karakter ----------
+   Yükleme ekranı: dance_02 döngüsü. Tanıtım kartları: clap ve dance karışık.
+   Model yüklenemezse eski resimler (logo, karakter görselleri) olduğu gibi kalır. */
+const DOC3 = { gltf:null, clips:{}, slots:[], renderer:null, clock:new THREE.Clock(), failed:false };
+const DOC_SLOTS = [['.loader .name','dance'], ['.tutor .tfig','mix'], ['.doc .head2','mix']];
+function docRenderer(){
+  if (DOC3.renderer) return DOC3.renderer;
+  const r = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  r.setClearColor(0x000000, 0);
+  DOC3.renderer = r;
+  return r;
+}
+function docAttach(host, mode){
+  host.dataset.dc = '1';
+  const cv = document.createElement('canvas');
+  cv.className = 'dcv'; cv.setAttribute('aria-hidden', 'true');
+  host.appendChild(cv);
+  host.classList.add('has-doc');
+  const root = skClone(DOC3.gltf.scene);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a8, 2.2));
+  const dl = new THREE.DirectionalLight(0xffffff, 2.0); dl.position.set(1.5, 3, 4); scene.add(dl);
+  scene.add(root);
+  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const cam = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
+  const mixer = new THREE.AnimationMixer(root);
+  const slot = { host, cv, ctx:cv.getContext('2d'), scene, cam, mixer, mode, size, c, cur:null, last:'' };
+  mixer.addEventListener('finished', () => docNext(slot));
+  docNext(slot);
+  DOC3.slots.push(slot);
+}
+function docNext(slot){
+  const { clap, dance } = DOC3.clips;
+  let clip, name;
+  if (slot.mode === 'dance' || !clap){ clip = dance || clap; name = 'dance'; }
+  else if (!dance){ clip = clap; name = 'clap'; }
+  else { name = slot.last === 'clap' ? (Math.random() < 0.75 ? 'dance' : 'clap') : (Math.random() < 0.75 ? 'clap' : 'dance'); clip = DOC3.clips[name]; }
+  if (!clip) return;
+  const a = slot.mixer.clipAction(clip);
+  a.reset();
+  if (slot.mode === 'dance') a.setLoop(THREE.LoopRepeat, Infinity);
+  else { a.setLoop(THREE.LoopRepeat, name === 'clap' ? 2 : 1); a.clampWhenFinished = true; }
+  a.play();
+  if (slot.cur && slot.cur !== a){ a.crossFadeFrom(slot.cur, 0.35, false); }
+  slot.cur = a; slot.last = name;
+}
+function docFrame(){
+  requestAnimationFrame(docFrame);
+  if (!DOC3.gltf) return;
+  const dt = Math.min(DOC3.clock.getDelta(), 0.1);
+  DOC_SLOTS.forEach(([sel, mode]) => document.querySelectorAll(sel).forEach(h => { if (!h.dataset.dc) docAttach(h, mode); }));
+  const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  DOC3.slots = DOC3.slots.filter(s => s.cv.isConnected);
+  for (const s of DOC3.slots){
+    s.mixer.update(dt);
+    const rc = s.cv.getBoundingClientRect();
+    if (rc.width < 2 || rc.height < 2 || rc.right < 0 || rc.left > W || rc.bottom < 0 || rc.top > H) continue;   // ekran dışında: çizme
+    const w = Math.round(rc.width * dpr), h = Math.round(rc.height * dpr);
+    if (s.cv.width !== w || s.cv.height !== h){ s.cv.width = w; s.cv.height = h; }
+    const r = docRenderer();
+    r.setPixelRatio(1); r.setSize(w, h, false);
+    s.cam.aspect = w / h;
+    const fit = Math.max(s.size.y * 1.12, (s.size.x * 1.25) / s.cam.aspect);       // boyu ve (kollar açılınca) genişliği sığdır
+    const dist = (fit / 2) / Math.tan(THREE.MathUtils.degToRad(s.cam.fov / 2));
+    s.cam.position.set(s.c.x, s.c.y + s.size.y * 0.04, s.c.z + dist);
+    s.cam.lookAt(s.c.x, s.c.y, s.c.z);
+    s.cam.updateProjectionMatrix();
+    r.render(s.scene, s.cam);
+    s.ctx.clearRect(0, 0, w, h);
+    s.ctx.drawImage(r.domElement, 0, 0, w, h);
+  }
+}
+loader.load('doctor.glb', g => {
+  DOC3.gltf = g;
+  g.animations.forEach(cl => {
+    const n = cl.name.toLowerCase();
+    if (/dance/.test(n) && (!DOC3.clips.dance || /dance_?0?2/.test(n))) DOC3.clips.dance = cl;
+    else if (/clap/.test(n)) DOC3.clips.clap = cl;
+  });
+  if (!DOC3.clips.dance && !DOC3.clips.clap && g.animations[0]) DOC3.clips.dance = g.animations[0];
+  console.log('doctor.glb animasyonları:', g.animations.map(a => a.name));
+  DOC3.clock.getDelta();
+}, undefined, err => { DOC3.failed = true; console.warn('doctor.glb yüklenemedi, resimler kullanılıyor', err); });
+requestAnimationFrame(docFrame);
 
 function loadModel(M){
   loadEl.classList.remove('done');
