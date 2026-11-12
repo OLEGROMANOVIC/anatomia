@@ -941,6 +941,9 @@
   #bGmail{left:calc(var(--safe-l) + var(--edge) + (var(--fab) + var(--fgap)) * 2) !important}
   #bShare svg,#bShareIg svg,#bGmail svg{display:none !important}
   .fabface{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;border-radius:16px}
+
+  /* ===== KAS MODELİ: işaretli nokta yok; noktaya bağlı test modları gizli ===== */
+  .muscle-mode .qm[data-lv="easy"],.muscle-mode .qm[data-lv="place"]{display:none !important}
 </style>
 </head>
 <body>
@@ -1016,7 +1019,7 @@
 
 <div class="mswitch" id="mswitch" role="group" aria-label="Model seç">
   <button class="btn" data-m="body" aria-pressed="true">Vücut</button>
-  <button class="btn" data-m="humerus" aria-pressed="false">Humerus</button>
+  <button class="btn" data-m="kas" aria-pressed="false">Kas</button>
   <button class="btn" data-m="skeleton" aria-pressed="false">İskelet</button>
 </div>
 
@@ -1028,6 +1031,9 @@
       <button class="btn sm" data-v="axis" aria-pressed="false">Axiale / Appendiculare</button>
       <button class="btn sm" data-v="girdle" aria-pressed="false">Kavşaklar ve serbest kısımlar</button>
     </div>
+  </div>
+  <div class="pside skel-only" id="jside">
+    <button class="btn sm" id="bJoints" aria-pressed="false">Kemik + eklem</button>
   </div>
   <div class="pside" id="pside">
     <button class="btn sm" id="bPlanes" aria-expanded="false">Düzlem seç</button>
@@ -1257,95 +1263,7 @@ const GLOSS_ALL = {
 };
 GLOSS_IMG.forEach(g => { GLOSS_ALL[g.k] = g.tr; });
 /* Plakadaki yerleşim: soldaki etiketler SOL kemikte (z>0), sağdaki etiketler SAĞ kemikte (z<0). */
-const RIGHT_ONLY = new Set(['Corpus humeri','Sulcus nervi radialis','Facies posterior','Crista supraepicondylaris lateralis',
-  'Crista supraepicondylaris medialis','Fossa olecrani','Sulcus nervi ulnaris']);
-function boneOf(r){
-  if (/\(arka\)$/.test(r.latin)) return 'R';
-  if (/\(ön\)$/.test(r.latin)) return 'L';
-  return RIGHT_ONLY.has(r.latin) ? 'R' : 'L';
-}
 function termNote(r){ const t = (r.t || []).map(k => k + ': ' + (GLOSS_ALL[k] || '')).join('  ·  '); return [r.d, t].filter(Boolean).join('  —  '); }
-
-/* ---------- Humerus bölgeleri ----------
-   Model boyu 2 birime normalize edilir (distal uç y=0, proksimal uç y=2).
-   Konumlar YAKLAŞIKTIR; düzenle moduyla sürükleyip yerleştirin ve "Kopyala" ile dışa aktarın. */
-const HUMERUS_REGIONS = [
-  { latin:'Caput humeri (ön)',             tr:'Humerus başı',               color:'#3b8cff', side:'front', x:-0.08, y:0.965, t:['Caput'] },
-  { latin:'Caput humeri (arka)',             tr:'Humerus başı',               color:'#3b8cff', side:'back', x:-0.08, y:0.965, t:['Caput'] },
-  { latin:'Collum anatomicum (ön)',        tr:'Anatomik boyun',             color:'#2fd07a', side:'front', x:-0.05, y:0.925, t:['Collum'] },
-  { latin:'Collum anatomicum (arka)',        tr:'Anatomik boyun',             color:'#2fd07a', side:'back', x:-0.05, y:0.925, t:['Collum'] },
-  { latin:'Tuberculum majus (ön)',         tr:'Büyük tümsekcik',            color:'#ff8a1f', side:'front', x: 0.08, y:0.945, t:['Tuberculum','majus'] },
-  { latin:'Tuberculum majus (arka)',         tr:'Büyük tümsekcik',            color:'#ff8a1f', side:'back', x: 0.08, y:0.945, t:['Tuberculum','majus'] },
-  { latin:'Tuberculum minus',         tr:'Küçük tümsekcik',            color:'#b57cff', side:'front', x: 0.00, y:0.935, t:['Tuberculum','minus'] },
-  { latin:'Sulcus intertubercularis', tr:'Tümsekcikler arası oluk',    color:'#1fc7c7', side:'front', x: 0.04, y:0.910, t:['Sulcus'] },
-  { latin:'Collum chirurgicum (ön)',       tr:'Cerrahi boyun',              color:'#e8c43a', side:'front', x: 0.00, y:0.860, t:['Collum'] },
-  { latin:'Collum chirurgicum (arka)',       tr:'Cerrahi boyun',              color:'#e8c43a', side:'back', x: 0.00, y:0.860, t:['Collum'] },
-  { latin:'Crista tuberculi majoris', tr:'Büyük tümsekcik ibiği',      color:'#ff5a7a', side:'front', x: 0.04, y:0.800, t:['Crista','Tuberculum','majus'] },
-  { latin:'Crista tuberculi minoris', tr:'Küçük tümsekcik ibiği',      color:'#4aa3ff', side:'front', x:-0.02, y:0.780, t:['Crista','Tuberculum','minus'] },
-  { latin:'Corpus humeri',            tr:'Humerus gövdesi',            color:'#a06bff', side:'back', x: 0.00, y:0.620, t:['Corpus'] },
-  { latin:'Tuberositas deltoidea',    tr:'Deltoid pürüzü',             color:'#ff4d4d', side:'front', x: 0.04, y:0.560, t:['Tuberositas'] },
-  { latin:'Sulcus nervi radialis',    tr:'Radial sinir oluğu',         color:'#2fd07a', side:'back',  x: 0.02, y:0.520, t:['Sulcus'] },
-  { latin:'Facies posterior',         tr:'Arka yüz',                   color:'#9a7cff', side:'back',  x: 0.00, y:0.420, t:['Facies','posterior'] },
-  { latin:'Facies anterior lateralis',tr:'Ön-dış yüz',                 color:'#ff8a1f', side:'front', x: 0.04, y:0.340, t:['Facies','anterior','lateralis'] },
-  { latin:'Facies anterior medialis', tr:'Ön-iç yüz',                  color:'#1ab3b3', side:'front', x:-0.04, y:0.340, t:['Facies','anterior','medialis'] },
-  { latin:'Margo lateralis',          tr:'Dış kenar',                  color:'#e0405e', side:'front', x: 0.07, y:0.260, t:['Margo','lateralis'] },
-  { latin:'Margo medialis',           tr:'İç kenar',                   color:'#3b8cff', side:'front', x:-0.07, y:0.260, t:['Margo','medialis'] },
-  { latin:'Crista supracondylaris lateralis', tr:'Dış üst kondil ibiği', color:'#e8c43a', side:'front', x: 0.08, y:0.180, t:['Crista','Condylus','lateralis'] },
-  { latin:'Crista supracondylaris medialis',  tr:'İç üst kondil ibiği',  color:'#ff5ab8', side:'front', x:-0.08, y:0.180, t:['Crista','Condylus','medialis'] },
-  { latin:'Crista supraepicondylaris lateralis', tr:'Dış üst epikondil ibiği', color:'#1fc7c7', side:'back', x: 0.08, y:0.170, t:['Crista','Epi','Condylus','lateralis'] },
-  { latin:'Crista supraepicondylaris medialis',  tr:'İç üst epikondil ibiği',  color:'#ff8a1f', side:'back', x:-0.08, y:0.170, t:['Crista','Epi','Condylus','medialis'] },
-  { latin:'Fossa radialis',           tr:'Radial çukur',               color:'#2fd07a', side:'front', x: 0.04, y:0.120, t:['Fossa'] },
-  { latin:'Fossa coronoidea',         tr:'Koronoid çukur',             color:'#b57cff', side:'front', x:-0.02, y:0.100, t:['Fossa'] },
-  { latin:'Fossa olecrani',           tr:'Olekranon çukuru',           color:'#ff8a1f', side:'back',  x: 0.00, y:0.090, t:['Fossa'] },
-  { latin:'Sulcus nervi ulnaris',     tr:'Ulnar sinir oluğu',          color:'#1fc7c7', side:'back',  x:-0.07, y:0.050, t:['Sulcus'] },
-  { latin:'Epicondylus lateralis (ön)',    tr:'Dış epikondil',              color:'#ff5a7a', side:'front', x: 0.11, y:0.050, t:['Epi','Condylus','lateralis'] },
-  { latin:'Epicondylus lateralis (arka)',    tr:'Dış epikondil',              color:'#ff5a7a', side:'back', x: 0.11, y:0.050, t:['Epi','Condylus','lateralis'] },
-  { latin:'Epicondylus medialis (arka)',     tr:'İç epikondil',               color:'#4aa3ff', side:'back', x:-0.11, y:0.050, t:['Epi','Condylus','medialis'] },
-  { latin:'Epicondylus medialis (ön)',     tr:'İç epikondil',               color:'#4aa3ff', side:'front', x:-0.11, y:0.050, t:['Epi','Condylus','medialis'] },
-  { latin:'Capitulum humeri',         tr:'Humerus başçığı',            color:'#a06bff', side:'front', x: 0.06, y:0.025, t:['Capitulum'] },
-  { latin:'Trochlea humeri (arka)',          tr:'Humerus makarası',           color:'#e8c43a', side:'back', x:-0.03, y:0.025, t:['Trochlea'] },
-  { latin:'Trochlea humeri (ön)',          tr:'Humerus makarası',           color:'#e8c43a', side:'front', x:-0.03, y:0.025, t:['Trochlea'] },
-  { latin:'Condylus humeri',          tr:'Humerus kondili',            color:'#ff4d4d', side:'front', x: 0.00, y:0.010, t:['Condylus'] },
-];
-
-const HUMERUS_DEFAULTS = {
-  'Caput humeri (ön)':{p:[0.072,1.975,0.727],n:[0.286,0.901,0.326]},
-  'Caput humeri (arka)':{p:[0.17,1.951,-0.678],n:[0.622,0.741,-0.253]},
-  'Collum anatomicum (ön)':{p:[0.164,1.958,0.597],n:[0.533,0.73,-0.428]},
-  'Collum anatomicum (arka)':{p:[0.181,1.827,-0.643],n:[0.875,0.005,-0.485]},
-  'Tuberculum majus (ön)':{p:[0.146,1.907,0.528],n:[0.997,0.059,0.052]},
-  'Tuberculum majus (arka)':{p:[0.17,1.869,-0.514],n:[0.827,-0.24,0.508]},
-  'Tuberculum minus':{p:[0.22,1.833,0.62],n:[0.905,-0.04,0.423]},
-  'Sulcus intertubercularis':{p:[0.141,1.935,0.443],n:[0.736,0.538,-0.411]},
-  'Collum chirurgicum (ön)':{p:[0.076,1.694,0.558],n:[0.523,-0.225,-0.822]},
-  'Collum chirurgicum (arka)':{p:[0.111,1.699,-0.614],n:[0.813,-0.435,-0.386]},
-  'Crista tuberculi majoris':{p:[0.065,1.481,0.583],n:[0.984,-0.154,0.087]},
-  'Crista tuberculi minoris':{p:[0.074,1.414,0.642],n:[0.957,-0.005,0.289]},
-  'Corpus humeri':{p:[0.076,1.14,-0.599],n:[0.735,-0.02,0.678]},
-  'Tuberositas deltoidea':{p:[0.079,1.033,0.628],n:[0.978,0.035,0.206]},
-  'Sulcus nervi radialis':{p:[0.082,1.028,-0.639],n:[1,0.018,-0.019]},
-  'Facies posterior':{p:[0.061,0.627,-0.633],n:[0.887,-0.086,-0.454]},
-  'Facies anterior lateralis':{p:[-0.035,0.438,0.545],n:[0.413,0.124,-0.902]},
-  'Facies anterior medialis':{p:[0.063,0.407,0.623],n:[0.93,0.006,0.366]},
-  'Margo lateralis':{p:[-0.044,0.579,0.557],n:[0.295,0.095,-0.951]},
-  'Margo medialis':{p:[0.048,0.521,0.649],n:[0.755,-0.064,0.652]},
-  'Crista supracondylaris lateralis':{p:[-0.148,0.267,0.462],n:[-0.322,0.448,-0.834]},
-  'Crista supracondylaris medialis':{p:[-0.03,0.208,0.753],n:[0.15,0.671,0.726]},
-  'Crista supraepicondylaris lateralis':{p:[0.092,0.304,-0.483],n:[0.981,0.192,-0.001]},
-  'Crista supraepicondylaris medialis':{p:[-0.009,0.347,-0.679],n:[0.18,0.098,-0.979]},
-  'Fossa radialis':{p:[-0.009,0.183,0.505],n:[0.538,0.772,-0.34]},
-  'Fossa coronoidea':{p:[0.007,0.127,0.596],n:[0.379,0.9,0.214]},
-  'Fossa olecrani':{p:[-0.041,0.177,-0.578],n:[0.864,0.02,-0.503]},
-  'Sulcus nervi ulnaris':{p:[0.008,0.069,-0.702],n:[0.744,-0.185,-0.643]},
-  'Epicondylus lateralis (ön)':{p:[-0.126,0.202,0.415],n:[0.239,0.589,-0.772]},
-  'Epicondylus lateralis (arka)':{p:[0.124,0.149,-0.437],n:[0.949,-0.098,-0.298]},
-  'Epicondylus medialis (arka)':{p:[-0.04,0.153,-0.76],n:[0.802,0.366,-0.471]},
-  'Epicondylus medialis (ön)':{p:[0.024,0.135,0.77],n:[0.937,0.042,0.348]},
-  'Capitulum humeri':{p:[0.131,0.124,0.418],n:[0.779,0.241,-0.58]},
-  'Trochlea humeri (arka)':{p:[0.098,0.076,-0.583],n:[0.94,0.099,-0.326]},
-  'Trochlea humeri (ön)':{p:[0.106,0.067,0.571],n:[0.937,-0.329,0.12]},
-  'Condylus humeri':{p:[0.128,0.117,0.508],n:[0.797,0.464,-0.386]}
-};
 
 /* ---------- İskelet modeli: etiketler (kemikler_1.pdf + kemikler_2.pdf) ----------
    Konumlar YAKLAŞIKTIR. "Düzenle" ile sürükleyip yerleştirin, "Kopyala" ile dışa aktarın.
@@ -1401,6 +1319,41 @@ const SK_RAD = { 'Os frontale':0.055,'Os parietale':0.055,'Os temporale':0.045,'
   'Os nasale':0.022,'Os zygomaticum':0.03,'Maxilla':0.04,'Mandibula':0.05 };
 const SKELETON_REGIONS = SK_RAW.map(a => ({ rad:SK_RAD[a[0]], rad0:SK_RAD[a[0]], latin:a[0], tr:a[1], color:SK_COL[a[2]], side:a[3], x:a[4], y:a[5],
   pr:a[6].indexOf('p') >= 0, mid:a[6].indexOf('m') >= 0, d:a[7] || '', alt:SK_ALT[a[0]] }));
+
+/* ---------- İskelet modeli: EKLEMLER (eklemler.pdf) ----------
+   Konumlar YAKLAŞIKTIR ve açılışta en yakın kemik yüzeyine yapıştırılır. "Düzenle" ile ince ayar yapılabilir.
+   Satır: [latin, türkçe, p(x ön, y yukarı, z yan), n(dışa bakan yön), çift taraflı mı, açıklama, kabul edilen diğer yazımlar] */
+const JT_COL = '#ffc21a';
+const JT_RAW = [
+ ['Art. temporomandibularis','Çene eklemi',[0.05,1.82,0.065],[0.3,0,0.95],1,"Kafatasındaki tek hareketli eklem. Temporal kemiğin fossa mandibularis'i ile caput mandibulae arasında. Arada discus articularis var (boşluğu ikiye ayırır). Sağ-sol birlikte çalıştığı için bicondylaris sayılır; çiğneme ve öğütme yapar.",['Articulatio temporomandibularis','Cene eklemi']],
+ ['Art. atlantooccipitalis','Atlas–artkafa eklemi',[-0.03,1.775,0],[-1,0,0],0,"Atlasın massa lateralis'leri ile oksipital kemiğin condylus occipitalis'leri arasında; ellipsoidea (condylaris) tipi. Başı öne-arkaya ve yana eğer.",['Articulatio atlantooccipitalis']],
+ ['Art. atlantoaxialis mediana','Atlas–axis orta eklemi',[0.02,1.75,0],[1,0,0],0,"Dens axis ile atlasın arcus anterior'u ve lig. transversum atlantis arasında; trochoidea tipi. Başın rotasyonunu sağlar. Yanlarda plana tipi art. atlantoaxialis lateralis'ler de katılır.",['Art. atlantoaxialis','Articulatio atlantoaxialis mediana']],
+ ['Symphysis intervertebralis','Omur gövdeleri arası eklem',[0.03,1.27,0],[1,0,0],0,"Omur gövdeleri arasında discus intervertebralis bulunur (23 adet, C2–S1). Merkezi nucleus pulposus (jelatinöz), çevresi anulus fibrosus. Symphysis grubu; sınırlı hareket.",[]],
+ ['Art. zygapophysialis','Omur eklem çıkıntıları arası eklem',[-0.075,1.3,0.012],[-1,0,0],0,"Komşu iki omurun alt ve üst eklem çıkıntıları (processus articularis) arasında; plana tipi, kapsülü ince ve gevşek.",['Artt. zygapophysiales']],
+ ['Artt. costovertebrales','Kaburga–omur eklemleri',[-0.08,1.48,0.04],[-1,0,0.2],1,"Her kaburga omurla iki eklem yapar: kaburga başı–omur gövdesi ve tuberculum costae–processus transversus. İkisi de plana tipi.",['Art. costovertebralis','Articulationes costovertebrales']],
+ ['Artt. sternocostales','Göğüs kemiği–kaburga eklemleri',[0.115,1.52,0.025],[1,0,0.2],1,"Sternum ile kaburgalar arasında; plana tipi, hafif kayma hareketi yapar.",['Art. sternocostalis']],
+ ['Art. sternoclavicularis','Göğüs–köprücük eklemi',[0.1,1.665,0.025],[1,0.2,0.2],1,"Klavikulanın sternal ucu ile sternum arasında; plana tipi, içinde discus articularis var. Çıkığı çok nadir (zorlanınca kırılır). Skapula hareketlerine katılır.",[]],
+ ['Art. acromioclavicularis','Akromion–köprücük eklemi',[0.0,1.68,0.17],[0,1,0.3],1,"Klavikulanın akromial ucu ile skapulanın akromionu arasında; plana tipi. Bazen discus articularis bulunur; kayma ve rotasyon yapar.",[]],
+ ['Art. humeri','Omuz eklemi',[0.0,1.63,0.19],[0.6,0,0.8],1,"Cavitas glenoidalis ile caput humeri arasında; spheroidea (3 eksen). Labrum glenoidale çukuru genişletir. Kapsül geniş-ince, en zayıf yeri alt kısım: çıkıklar koltuk altına olur. Vücudun en hareketli ve en çok çıkan eklemi; içinden kas kirişi geçen tek eklem.",['Articulatio humeri','Omuz eklemi']],
+ ['Art. cubiti','Dirsek eklemi',[-0.04,1.29,0.22],[0,0,1],1,"Ortak kapsül içinde 3 eklem: art. humeroulnaris (trochlea humeri–incisura trochlearis, ginglymus), art. humeroradialis (capitulum humeri–radius başı, spheroidea), art. radioulnaris proximalis (radius başı–ulna çentiği + lig. anulare radii, trochoidea). Fleksiyon, ekstensiyon, supinasyon, pronasyon.",['Articulatio cubiti','Dirsek eklemi']],
+ ['Art. radioulnaris distalis','Alt radius–ulna eklemi',[0.0,1.04,0.26],[0,0,1],1,"Ulna ve radiusun alt uçları arasında; trochoidea tipi. Proximalis ile birlikte supinasyon ve pronasyon yapar.",[]],
+ ['Art. radiocarpalis','El bileği eklemi',[0.015,1.015,0.275],[0.3,0,1],1,"Radiusun alt ucu ile proksimal sıra karpal kemikler arasında (os pisiforme katılmaz); ellipsoidea tipi. Ulna ile karpallar arasında discus articularis var. Fleksiyon, ekstensiyon, abduksiyon, adduksiyon.",['Art. radiocarpea','Articulatio radiocarpalis','El bilegi eklemi']],
+ ['Artt. carpometacarpales','Karpal–metakarpal eklemler',[0.045,0.965,0.285],[0.3,0,1],1,"Karpal kemiklerin distal sırası ile metakarpallar arasında. Başparmaktaki art. carpometacarpea pollicis eyer (sellaris) tipidir.",['Art. carpometacarpalis','Artt. carpometacarpeae']],
+ ['Artt. metacarpophalangeales','Tarak–parmak eklemleri',[0.065,0.91,0.29],[0.3,0,1],1,"Metakarpal kemiklerin uçları ile birinci sıra parmak kemikleri (falankslar) arasında.",['Artt. metacarpaphalangeales','Art. metacarpophalangealis']],
+ ['Artt. interphalangeales manus','El parmak arası eklemler',[0.08,0.86,0.29],[0.3,0,1],1,"1. ile 2. falanks ve 2. ile 3. falanks arasındaki eklemler.",['Artt. interphalangeales','Art. interphalangealis']],
+ ['Art. sacroiliaca','Sakrum–ilium eklemi',[-0.11,1.17,0.045],[-1,0,0.2],1,"Sakrum ile ilium arasında; hareketi çok sınırlı, bağları çok güçlü. Kıkırdağı ileri yaşta kemikleşebilir.",['Articulatio sacroiliaca']],
+ ['Symphysis pubica','Kasık kemikleri bitişimi',[0.06,1.05,0],[1,0,0],0,"İki pubis kemiği arasında symphysis tipi; arada discus interpubicus. Gebeliğin sonunda hormonlarla gevşer, doğumu kolaylaştırır.",[]],
+ ['Art. coxae','Kalça eklemi',[0.01,1.05,0.1],[0.3,0,0.95],1,"Caput femoris ile acetabulum arasında; spheroidea. Labrum acetabulare çukuru büyütür. Kapsül kalın ve sıkı. Çıkık en çok aşırı abduksiyonda.",['Articulatio coxae','Kalca eklemi']],
+ ['Art. genus','Diz eklemi',[0.02,0.565,0.09],[0.3,0,0.95],1,"Vücudun en büyük eklemi. Femur kondilleri ile tibia kondilleri arasında; bicondylaris. Uyumu meniscus medialis (C) ve lateralis (kapanmaya yakın C) sağlar. Eklem içinde çapraz bağlar. Fleksiyon-ekstensiyon; fleksiyonda biraz rotasyon.",['Art. genu','Articulatio genus','Diz eklemi']],
+ ['Art. tibiofibularis','Üst tibia–fibula eklemi',[-0.01,0.53,0.12],[0,0,1],1,"Tibia üst ucunun dış yüzü ile fibula başı arasında; plana tipi, çok sınırlı kayma.",['Art. tibiofibularis proximalis']],
+ ['Syndesmosis tibiofibularis','Alt tibia–fibula bağlantısı',[-0.015,0.2,0.115],[0,0,1],1,"Tibia ve fibulanın alt uçları arasında; fibröz eklem (syndesmosis), sınırlı kayma. İki kemik arasını membrana interossea cruris bağlar.",['Art. tibiofibularis distalis','Syndesmosis tibiofibularis distalis']],
+ ['Art. talocruralis','Ayak bileği eklemi',[0.01,0.165,0.09],[1,0.2,0],1,"Tibia ve fibulanın alt uçlarının yaptığı çatal ile talus arasında; ginglymus. Plantar fleksiyon ve dorsal fleksiyon (ekstensiyon) yapar.",['Articulatio talocruralis','Ayak bilegi eklemi']],
+ ['Artt. intertarseae','Ayak bileği kemikleri arası eklemler',[0.04,0.12,0.09],[0.4,1,0],1,"Tarsal kemikler arasında; çoğu plana tipi, sınırlı kayma. Ayağın ön kısmını içe-dışa döndürür.",['Art. intertarsea','Artt. intertarsales']],
+ ['Artt. tarsometatarsales','Lisfranc eklemi',[0.07,0.085,0.09],[0.3,1,0],1,"Tarsal kemiklerin distal sırası ile metatarsların tabanları (basis) arasında; plana tipi. Lisfranc eklemi de denir.",['Art. tarsometatarsalis','Lisfranc']]
+];
+JT_RAW.forEach(a => {
+  SKELETON_REGIONS.push({ latin:a[0], tr:a[1], color:JT_COL, side:'front', x:0, y:0, pr:!!a[4], mid:!a[4], d:a[5], alt:a[6], jt:true });
+});
 
 /* Kemik terimleri (kemikler_1.pdf, "Kemiklerde çok kullanılan terimler") */
 const BONE_TERMS = [['Angulus','Açı, köşe'],['Ala','Kanat'],['Apertura','Açıklık, delik'],['Apex','Tepe, uç'],['Arcus','Kavis, kemer, yay'],
@@ -1497,11 +1450,12 @@ const SKELETON_DEFAULTS = {
   'Mandibula':{p:[0.09,1.77,0],n:[0.9,-0.3,0]}
 };
 const SNAP_NEW = new Set(['Os frontale','Os parietale','Os temporale','Os occipitale','Os sphenoidale','Os nasale','Os zygomaticum','Maxilla','Mandibula']);   // tahmini konumlar yüzeye yapıştırılır; düzenleyip kaydedince sabitlenir
+JT_RAW.forEach(a => { SKELETON_DEFAULTS[a[0]] = { p:a[2].slice(), n:a[3].slice() }; SNAP_NEW.add(a[0]); });   // eklem noktaları: tahmini konum, yüzeye yapıştırılır
 
 /* ---------- Modeller ---------- */
 const MODELS = {
   body:    { file:'anatomymodel.glb', title:'Vücut',   kind:'body', regions:BODY_REGIONS,    defaults:DEFAULTS, store:'anatomia-pozisyon-v3', group:null, info:null, flipV:false },
-  humerus: { file:'humerus.glb',      title:'Humerus', kind:'bone', regions:HUMERUS_REGIONS, defaults:HUMERUS_DEFAULTS, store:'anatomia-humerus-v3',  group:null, info:null, flipV:false },
+  kas:     { file:'musculus.glb',     title:'Kas',     kind:'muscle', regions:[],            defaults:{},       store:'anatomia-kas-v1',     group:null, info:null, flipV:false, rotY:0 },
   skeleton:{ file:'skeleton.glb',   title:'İskelet', kind:'skeleton', regions:SKELETON_REGIONS, defaults:SKELETON_DEFAULTS, store:'anatomia-iskelet-v1', group:null, info:null, flipV:false, rotY:0 },
 };
 let curModel = 'body';
@@ -1592,7 +1546,8 @@ resize();
 
 /* ---------- build UI list ---------- */
 function buildList(){
-  listEl.innerHTML = '';
+  listEl.innerHTML = REGIONS.length ? '' :
+    '<div class="gl" style="font-size:13.5px;line-height:1.45">Kas modelinde işaretli nokta yok. Kasların yeri, bağlantıları ve sinirleri <b>Notlar</b> bölümünde; sorular <b>Sözlü</b> ve <b>Vize provası</b> modlarında.</div>';
   REGIONS.forEach((r, i) => {
     const b = document.createElement('button');
     b.className = 'item';
@@ -1821,9 +1776,7 @@ function updateRead(msg){
   const m = markers[activeIdx];
   if (!m){ edRead.textContent = 'Bir noktayı model üzerinde sürükleyin, ya da bölge seçip düğmelerle ince ayar yapın.'; return; }
   const p = m.pos;
-  edRead.textContent = m.region.latin + ':  x ' + p.x.toFixed(3) + '   y ' + p.y.toFixed(3) + '   z ' + p.z.toFixed(3) + (m.region.p ? '   (düzenlendi)' : '') +
-    (MODELS[curModel].kind === 'bone' ? '   · olması gereken: ' + (boneOf(m.region) === 'L' ? 'sol' : 'sağ') + ' kemik' +
-      ((Math.sign(p.z) > 0) !== (boneOf(m.region) === 'L') ? ' (ŞU AN DİĞER KEMİKTE)' : '') : '');
+  edRead.textContent = m.region.latin + ':  x ' + p.x.toFixed(3) + '   y ' + p.y.toFixed(3) + '   z ' + p.z.toFixed(3) + (m.region.p ? '   (düzenlendi)' : '');
 }
 
 function orient(hit, dir, nExplicit){
@@ -2052,7 +2005,8 @@ function startQuiz(mode){
   else if (quiz.mode === 'vize40') quiz.queue = buildVize(40, false);
   else if (quiz.mode === 'vize50') quiz.queue = buildVize(50, true);
   else if (quiz.mode === 'place') quiz.queue = quiz.queue.slice(0, 15);
-  else if (quiz.mode === 'oral') quiz.queue = buildOral();          // teorik grup: anatomi çeşitleri
+  else if (quiz.mode === 'oral') quiz.queue = buildOral();
+  else if (quiz.mode === 'hard' && !REGIONS.length) quiz.queue = buildSozluKE();   // kas modeli: noktasız sözlü          // teorik grup: anatomi çeşitleri
   quiz.theoryLeft = quiz.mode === 'medium' ? 2 : 0;           // orta modda 2 tur çeşit eşleştirmesi
   quiz.total = quiz.queue.length;
   quiz.tol = markers.map((m, i) => {
@@ -2300,7 +2254,8 @@ function bodyFrame(){
     return v.length ? { med: v[v.length >> 1], spread: v[v.length - 1] - v[0] } : { med: 0, spread: 0 };
   };
   const sx = stat('x'), sz = stat('z');
-  const latAx = sx.spread < sz.spread ? 'x' : 'z';           // yan (sağ-sol) eksen
+  const nb = modelInfo.norm || [0.8, 2, 2.2];
+  const latAx = mid.length ? (sx.spread < sz.spread ? 'x' : 'z') : (nb[0] >= nb[2] ? 'x' : 'z');   // yan (sağ-sol) eksen; nokta yoksa en geniş yatay eksen
   const apAx = latAx === 'x' ? 'z' : 'x';                    // ön-arka eksen
   const n = modelInfo.norm || [0.8, 2, 2.2];
   const size = { x:n[0], y:n[1], z:n[2] };
@@ -2510,18 +2465,7 @@ function nearestSurface(q, zSign, nref){
            normal:new THREE.Vector3(c.nrm[3 * best], c.nrm[3 * best + 1], c.nrm[3 * best + 2]) };
 }
 /* terim yanlış kemikteyse karşı kemiğe taşı: (x,y,z) -> (-x,y,-z), en yakın yüzeye yapıştır */
-function fixBoneSides(){
-  if (MODELS[curModel].kind !== 'bone') return false;
-  let changed = false;
-  REGIONS.forEach(r => {
-    if (!r.p) return;
-    const want = boneOf(r) === 'L' ? 1 : -1;
-    if (Math.sign(r.p[2]) === want) return;
-    const h = nearestSurface(new THREE.Vector3(-r.p[0], r.p[1], -r.p[2]), want);
-    if (h){ r.p = h.point.toArray(); r.n = h.normal.toArray(); changed = true; }
-  });
-  return changed;
-}
+function fixBoneSides(){ return false; }
 function radStep(d){
   const m = markers[activeIdx]; if (!m){ updateRead('Önce bir bölge seçin.'); return; }
   const r = m.region, v = Math.max(0, Math.min(0.4, +((r.rad || 0) + d).toFixed(3)));
@@ -2851,6 +2795,10 @@ const tfQ = document.getElementById('tfQ'), tyQ = document.getElementById('tyQ')
 const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
 const norm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\(.*?\)\s*/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
 
+/* yazılı cevap: m./art./n./lig. önekleri, noktalar ve Türkçe harf farkları önemsiz */
+const looseNorm = t => norm(String(t).replace(/[ıİ]/g, 'i').replace(/[’'`]/g, '')).replace(/[.,;]/g, ' ')
+  .replace(/^(?:mm|m|musculus|musculi|artt|art|articulatio|articulationes|n|nervus|lig|ligamentum)\s+/, '')
+  .replace(/\s+/g, ' ').trim();
 function requeue(i, extra){ quiz.queue.splice(Math.min(QUIZ.requeueAfter + (extra || 0), quiz.queue.length), 0, i); }
 function advance(ms){ const run = quiz.run; setTimeout(() => { if (run === quiz.run) nextCard(); }, ms); }
 function hidePanels(){
@@ -2960,6 +2908,18 @@ function finishMatch(){
 
 /* --- zor: cevabı yaz --- */
 function typeCard(){
+  if (typeof quiz.queue[0] === 'object'){      // kas / eklem sorusu: cevabı yaz
+    const it = quiz.queue.shift();
+    quiz.cur = -1; quiz.ty = { it };
+    tyH.textContent = 'Sözlü · cevabı yaz';
+    tyQ.textContent = it.q;
+    tyIn.placeholder = 'Cevabını yaz';
+    tyIn.value = ''; tyIn.disabled = false;
+    showPanel(qType);
+    setTimeout(() => { if (quiz.ty && quiz.ty.it === it) tyIn.focus(); }, 80);
+    return;
+  }
+  tyIn.placeholder = 'Latince adını yaz';
   const i = quiz.cur = quiz.queue.shift(), r = REGIONS[i];
   const pointQ = Math.random() < 0.4;
   quiz.ty = { i, pointQ };
@@ -2980,7 +2940,21 @@ function typeCard(){
 }
 function submitType(giveUp){
   if (!quiz.active || quiz.busy || !quiz.ty) return;
-  const { i } = quiz.ty, r = REGIONS[i], typed = norm(tyIn.value);
+  if (quiz.ty.it){
+    const it = quiz.ty.it, typed = looseNorm(tyIn.value);
+    if (!giveUp && !typed) return;
+    quiz.busy = true; quiz.attempts++;
+    tyIn.disabled = true; tyIn.blur();
+    if (!giveUp && it.a.some(a => looseNorm(a) === typed)){
+      quiz.solved++; updateProg();
+      showMsg('Doğru: ' + it.a[0], 'ok'); advance(1600);
+    } else {
+      quiz.wrong++; requeue(it);
+      showMsg((giveUp ? 'Cevap: ' : 'Yanlış. Doğrusu: ') + it.a[0], 'bad'); advance(2800);
+    }
+    return;
+  }
+  const { i } = quiz.ty, r = REGIONS[i], typed = looseNorm(tyIn.value);
   if (!giveUp && !typed) return;
   quiz.busy = true; quiz.attempts++;
   tyIn.disabled = true; tyIn.blur();
@@ -2989,7 +2963,7 @@ function submitType(giveUp){
   mk.el.classList.remove('quizq'); mk.el.classList.add('reveal', 'active'); quiz.qMark = i;
   const dir = mk.normal.clone(); dir.y *= 0.3; dir.normalize();
   goTo(mk.pos.clone().addScaledVector(dir, 1.0), mk.pos.clone(), 900);
-  if (!giveUp && (typed === norm(r.latin) || (r.alt || []).some(a => norm(a) === typed))){
+  if (!giveUp && (typed === looseNorm(r.latin) || (r.alt || []).some(a => looseNorm(a) === typed))){
     quiz.solved++; updateProg();
     showMsg('Doğru: ' + r.latin + ' (' + r.tr + ')', 'ok'); advance(2000);
   } else {
@@ -3236,9 +3210,11 @@ function poolDetail(){
     if (r.d){
       const txt = r.d.split(r.latin).join('…'), low = txt.toLowerCase();
       const wr = names.filter(n => n !== r.latin && !low.includes(n.toLowerCase()));
-      if (wr.length >= 4) L.push({ q:'Aşağıdaki bilgi hangi kemik / kemik grubuna aittir?  «' + txt + '»', o:opts5(r.latin, wr), r:r.latin });
+      const same = names.filter(n => wr.includes(n) && !!(SKELETON_REGIONS.find(x => x.latin === n) || {}).jt === !!r.jt);
+      if (same.length >= 4) L.push({ q:'Aşağıdaki bilgi hangi ' + (r.jt ? 'ekleme' : 'kemik / kemik grubuna') + ' aittir?  «' + txt + '»', o:opts5(r.latin, same), r:r.latin });
     }
-    L.push({ q:'"' + r.tr + '" kemiğinin Latince adı hangisidir?', o:opts5(r.latin, names), r:r.latin });
+    const sameN = SKELETON_REGIONS.filter(x => !!x.jt === !!r.jt).map(x => x.latin);
+    L.push({ q:'"' + r.tr + '" ' + (r.jt ? '' : 'kemiğinin ') + 'Latince adı hangisidir?', o:opts5(r.latin, sameN), r:r.latin });
   });
   return L;
 }
@@ -3370,21 +3346,180 @@ const NOTES_QS = [
  NQ('Ayakta başparmakta hangi falanks bulunmaz?','Phalanx media','Phalanx proximalis','Phalanx distalis','Hepsi bulunur','Hiçbiri bulunmaz'),
 ];
 
+
+/* ---------- KASLAR (kaslar_1.pdf) ve EKLEMLER (eklemler.pdf) soru havuzu ----------
+   q: soru · a: [doğru cevap, ...yazarken kabul edilen diğer yazımlar] · w: yanlış şıklar · t: sözlüde yazılabilir kısa cevap */
+const KQ = (q, a, w, t) => ({ q, a:Array.isArray(a) ? a : [a], w, t:!!t });
+const KAS_QS = [
+ // genel
+ KQ('Kas gövdesini en dıştan saran bağ dokusu hangisidir?', 'Epimisyum', ['Perimisyum','Endomisyum','Periosteum','Aponeurosis'], 1),
+ KQ('Her bir kas demetini (fasciculus) saran bağ dokusu hangisidir?', 'Perimisyum', ['Epimisyum','Endomisyum','Fascia superficialis','Tendon'], 1),
+ KQ('Her bir kas lifini saran bağ dokusu hangisidir?', 'Endomisyum', ['Perimisyum','Epimisyum','Periosteum','Sarcolemma kılıfı'], 1),
+ KQ('Kas kasıldığında hareketsiz veya az hareketli kalan, genellikle gövdeye yakın yapışma yerine ne denir?', 'Origo', ['Insertio','Venter','Caput','Aponeurosis'], 1),
+ KQ('Kas kasıldığında hareket eden, gövdeye uzak yapışma yerine ne denir?', 'Insertio', ['Origo','Venter','Caput','Tendo'], 1),
+ KQ('Özellikle karın kaslarında görülen yassı ve yayvan tendona ne denir?', ['Aponeurosis','Aponevroz'], ['Epimisyum','Intersectio tendinea','Linea alba','Fascia'], 1),
+ KQ('Aynı fonksiyonda birlikte çalışan kaslara ne denir?', ['Sinergist','Sinergist kaslar'], ['Antagonist','Agonist olmayan','Tonik','Motor ünite'], 1),
+ KQ('Birbirine zıt görev yapan kaslara ne denir?', ['Antagonist','Antagonist kaslar'], ['Sinergist','Fiksatör','Tonik','Motor ünite'], 1),
+ KQ('Kasın istirahat halindeki gerginliğine ne denir?', ['Tonus','Kas tonusu'], ['İskemi','Atrofi','Hipertrofi','Kontraksiyon'], 1),
+ KQ('Bir motor sinir ile innerve ettiği kas liflerinin tümüne ne denir?', ['Motor ünite','Motor unite'], ['Motor nokta','Sinaps','Fasciculus','Tonus'], 1),
+ KQ('Düzenli çalışmayla kasta oluşan kitlesel artışa ne denir?', 'Hipertrofi', ['Atrofi','İskemi','Hiperplazi','Tonus'], 1),
+ KQ('Hareketsizlik veya sinir hasarıyla kasta kitlesel azalmaya ne denir?', 'Atrofi', ['Hipertrofi','İskemi','Tonus','Distrofi'], 1),
+ KQ('İskelet kasları vücut ağırlığının yaklaşık yüzde kaçını oluşturur?', '%40', ['%15','%25','%60','%75'], 0),
+ KQ('Yapı olarak çizgili kasa benzeyen ama isteğimiz dışında (otonom) çalışan kas hangisidir?', ['Kalp kası','Kalp'], ['Düz kas','İskelet kası','Mimik kaslar','Diaphragma'], 1),
+ KQ('İki karınlı (venter) kaslara örnek hangisidir?', ['M. digastricus','Digastricus'], ['M. biceps brachii','M. triceps brachii','M. quadriceps femoris','M. masseter'], 1),
+ KQ('Silindirik (teretik) kaslara örnek hangisidir?', ['M. teres major','Teres major'], ['M. quadratus lumborum','M. orbicularis oris','M. rectus femoris','M. obliquus externus'], 0),
+ // baş
+ KQ('Mimik (yüz) kaslarının motor siniri hangisidir?', ['N. facialis','Facialis','VII. kafa çifti'], ['N. mandibularis','N. accessorius','N. phrenicus','N. thoracodorsalis'], 1),
+ KQ('Çiğneme kaslarının siniri hangisidir?', ['N. mandibularis','Mandibularis'], ['N. facialis','N. accessorius','N. phrenicus','N. vagus'], 1),
+ KQ('Çiğneme kasları kaç tanedir ve hepsi nerede sonlanır?', '4 tane; hepsi mandibulada', ['4 tane; hepsi maxillada','3 tane; hepsi os temporalede','5 tane; hepsi mandibulada','2 tane; hepsi os zygomaticumda'], 0),
+ KQ('Çiğneme kaslarından çenenin açılmasını sağlayan hangisidir?', ['M. pterygoideus lateralis','Pterygoideus lateralis'], ['M. masseter','M. temporalis','M. pterygoideus medialis','M. buccinator'], 1),
+ KQ('Hangisi çiğneme kası değildir?', 'M. buccinator', ['M. masseter','M. temporalis','M. pterygoideus medialis','M. pterygoideus lateralis'], 0),
+ KQ('Orbita girişini daire şeklinde saran, göz kapaklarını kapatan ve göz kırpmayı sağlayan kas hangisidir?', ['M. orbicularis oculi','Orbicularis oculi'], ['M. levator palpebrae superioris','M. corrugator supercilii','M. procerus','M. orbicularis oris'], 1),
+ KQ('Üst göz kapağını açan kas hangisidir?', ['M. levator palpebrae superioris','M. levator palpebra superioris','Levator palpebrae superioris'], ['M. orbicularis oculi','M. corrugator supercilii','M. procerus','M. nasalis'], 1),
+ KQ('Kaşların çatılmasını sağlayan kas hangisidir?', ['M. corrugator supercilii','Corrugator supercilii'], ['M. procerus','M. orbicularis oculi','M. occipitofrontalis','M. nasalis'], 1),
+ KQ('Dudakların esas kapatıcı kası hangisidir?', ['M. orbicularis oris','Orbicularis oris'], ['M. buccinator','M. risorius','M. zygomaticus major','M. levator labii superioris'], 1),
+ KQ('Yanakları bastırarak üflemeyi sağlayan, nefesli çalgı çalanlarda iyi gelişmiş kas hangisidir?', ['M. buccinator','Buccinator'], ['M. masseter','M. risorius','M. orbicularis oris','M. zygomaticus minor'], 1),
+ KQ('Ağız köşesini yukarı kaldırarak gülmeye katılan kas hangisidir?', ['M. zygomaticus major','Zygomaticus major'], ['M. zygomaticus minor','M. risorius','M. depressor labii inferioris','M. buccinator'], 1),
+ KQ('Gülme ve tebessümde ağız köşesini dışa doğru çeken kas hangisidir?', ['M. risorius','Risorius'], ['M. zygomaticus major','M. buccinator','M. platysma','M. orbicularis oris'], 1),
+ KQ('Saçlı derinin altında bulunan, orta bölümü galea aponeurotica olan kas hangisidir?', ['M. epicranius','M. occipitofrontalis','Epicranius','Occipitofrontalis'], ['M. temporalis','M. procerus','M. auricularis superior','M. corrugator supercilii'], 1),
+ KQ('Burun kökünde deri altında bulunan kas hangisidir?', ['M. procerus','Procerus'], ['M. nasalis','M. corrugator supercilii','M. orbicularis oculi','M. levator labii superioris'], 1),
+ // boyun
+ KQ('Boyunda deri altında yüzeyel, ince ve zayıf olan; siniri n. facialis olan kas hangisidir?', ['Platysma','M. platysma'], ['M. sternocleidomastoideus','M. trapezius','M. omohyoideus','M. scalenus anterior'], 1),
+ KQ('Sternum ve klavikuladan başlayıp processus mastoideus’ta sonlanan kas hangisidir?', ['M. sternocleidomastoideus','Sternocleidomastoideus','SCM'], ['M. scalenus anterior','M. omohyoideus','M. trapezius','M. sternohyoideus'], 1),
+ KQ('M. sternocleidomastoideus ve m. trapezius’un ortak siniri hangisidir?', ['N. accessorius','Accessorius'], ['N. facialis','N. phrenicus','N. thoracodorsalis','N. mandibularis'], 1),
+ KQ('M. sternocleidomastoideus tek taraflı kasıldığında ne olur?', 'Baş aynı tarafa eğilir, yüz karşı tarafa döner', ['Baş öne eğilir, yüz aynı tarafa döner','Baş arkaya eğilir, boyun öne çekilir','Kaburgalar yukarı kalkar','Hyoid kemik aşağı iner'], 0),
+ KQ('Skalen kaslar nerede uzanır?', 'Boyun omurlarının transvers çıkıntıları ile 1. ve 2. kaburga arasında', ['Sternum ile processus mastoideus arasında','Atlas, axis ve oksipital kemik arasında','Hyoid kemik ile sternum arasında','Son 8 kaburga ile linea alba arasında'], 0),
+ KQ('Skalen kaslar üst uçları sabitken kasılırsa ne olur?', 'Kaburgaları kaldırarak inspirasyona yardım eder', ['Ekspirasyona yardım eder','Başı karşı tarafa döndürür','Hyoidi aşağı çeker','Skapulayı yukarı çeker'], 0),
+ KQ('Hangisi prevertebral kas değildir?', 'M. scalenus anterior', ['M. longus colli','M. longus capitis','M. rectus capitis anterior','Hepsi prevertebraldir'], 0),
+ KQ('Hyoid üstü kaslar kasıldığında ne olur?', 'Hyoid ve larynx yukarı kalkar; yutkunmada gıdanın nefes yoluna kaçması önlenir', ['Hyoid aşağı iner','Çene kapanır','Baş arkaya eğilir','Kaburgalar yukarı kalkar'], 0),
+ KQ('Hangisi hyoid altı kas değildir?', 'M. mylohyoideus', ['M. sternohyoideus','M. sternothyroideus','M. thyrohyoideus','M. omohyoideus'], 0),
+ KQ('Hangisi hyoid üstü kas değildir?', 'M. omohyoideus', ['M. digastricus','M. stylohyoideus','M. mylohyoideus','M. geniohyoideus'], 0),
+ KQ('Hyoid kemiğe yapışan kaslar toplam kaç tanedir?', '8 (4 hyoid üstü + 4 hyoid altı)', ['4','6 (3 + 3)','10 (5 + 5)','12 (6 + 6)'], 0),
+ // sırt
+ KQ('Sırtın en yüzeyel kası hangisidir?', ['M. trapezius','Trapezius'], ['M. latissimus dorsi','Mm. rhomboidei','M. levator scapulae','M. erector spinae'], 1),
+ KQ('M. trapezius nerelerde sonlanır?', 'Klavikula, acromion ve spina scapulae', ['Humerusun crista tuberculi minoris’i','Skapulanın iç kenarı','Processus coracoideus','Processus mastoideus'], 0),
+ KQ('Kolun en kuvvetli adduktoru hangisidir?', ['M. latissimus dorsi','Latissimus dorsi'], ['M. trapezius','M. deltoideus','M. serratus anterior','M. pectoralis minor'], 1),
+ KQ('M. latissimus dorsi nerede sonlanır?', 'Humerusun crista tuberculi minoris’inde', ['Humerusun crista tuberculi majoris’inde','Tuberositas deltoidea’da','Processus coracoideus’ta','Spina scapulae’de'], 0),
+ KQ('M. latissimus dorsi’nin siniri hangisidir?', ['N. thoracodorsalis','Thoracodorsalis'], ['N. accessorius','N. thoracicus longus','N. phrenicus','N. facialis'], 1),
+ KQ('Plica axillaris posterior’u hangi kas yapar?', ['M. latissimus dorsi','Latissimus dorsi'], ['M. pectoralis major','M. trapezius','M. teres minor','M. serratus anterior'], 1),
+ KQ('Mm. rhomboidei nereler arasında uzanır?', 'Son boyun omuru ve ilk 5 göğüs omuru ile skapulanın iç kenarı', ['İlk 4 boyun omuru ile skapulanın üst köşesi','3.–5. kaburgalar ile processus coracoideus','Klavikula ile 1. kaburga','Crista iliaca ile 12. kaburga'], 0),
+ KQ('İlk dört boyun omuru ile skapulanın üst köşesi arasında uzanan kas hangisidir?', ['M. levator scapulae','Levator scapulae'], ['Mm. rhomboidei','M. trapezius','M. splenius cervicis','M. scalenus posterior'], 1),
+ KQ('M. erector spinae’nin dıştan içe üç sütunu hangisidir?', 'M. iliocostalis, m. longissimus, m. spinalis', ['M. spinalis, m. longissimus, m. iliocostalis','M. longissimus, m. iliocostalis, m. spinalis','M. splenius, m. longissimus, m. spinalis','M. iliocostalis, m. spinalis, m. splenius'], 0),
+ KQ('Derin ense kasları hangi kemikler arasındaki bağlantıyı sağlar?', 'Atlas, axis ve oksipital kemik', ['Sternum ve klavikula','Skapula ve humerus','Sakrum ve ilium','Hyoid ve mandibula'], 0),
+ // göğüs
+ KQ('Aksillanın ön duvarını yapan ve alt kenarı plica axillaris anterior’u oluşturan kas hangisidir?', ['M. pectoralis major','Pectoralis major'], ['M. pectoralis minor','M. latissimus dorsi','M. serratus anterior','M. subclavius'], 1),
+ KQ('M. pectoralis major nerede sonlanır?', 'Humerusun crista tuberculi majoris’inde', ['Humerusun crista tuberculi minoris’inde','Processus coracoideus’ta','Skapulanın iç kenarında','Klavikulada'], 0),
+ KQ('3.–5. kaburgalar ile processus coracoideus arasında uzanan kas hangisidir?', ['M. pectoralis minor','Pectoralis minor'], ['M. pectoralis major','M. subclavius','M. serratus anterior','M. coracobrachialis'], 1),
+ KQ('Klavikula ile 1. kaburga arasında yastık görevi gören kas hangisidir?', ['M. subclavius','Subclavius'], ['M. pectoralis minor','M. scalenus anterior','M. omohyoideus','M. levator scapulae'], 1),
+ KQ('M. serratus anterior’un siniri hangisidir?', ['N. thoracicus longus','Thoracicus longus'], ['N. thoracodorsalis','N. accessorius','N. phrenicus','N. intercostalis'], 1),
+ KQ('M. serratus anterior felcinde ne görülür?', ['Kanat skapula','Kanat scapula'], ['Omuz çıkığı','Plica axillaris kaybı','Kolun adduksiyon kaybı','Başın eğilmesi'], 1),
+ KQ('Kolun 180°ye kadar abduksiyonunda humerus başına destek olan, ilk 8–10 kaburgadan başlayan kas hangisidir?', ['M. serratus anterior','Serratus anterior'], ['M. trapezius','M. pectoralis minor','Mm. rhomboidei','M. latissimus dorsi'], 1),
+ KQ('Mm. intercostales externi ve interni’nin görevi hangisidir?', 'Externi inspirasyon, interni ekspirasyon', ['Externi ekspirasyon, interni inspirasyon','İkisi de inspirasyon','İkisi de ekspirasyon','Kolun adduksiyonu'], 0),
+ KQ('Solunumun esas kası hangisidir?', ['Diaphragma','Diafragma'], ['Mm. intercostales externi','M. scalenus anterior','M. pectoralis major','M. transversus thoracis'], 1),
+ KQ('Diafragmanın siniri hangisidir?', ['N. phrenicus','Phrenicus','Frenikus'], ['N. vagus','N. accessorius','N. thoracicus longus','N. intercostalis'], 1),
+ KQ('Diafragmanın kas lifi içermeyen, aponevrotik merkezi kısmı hangisidir?', ['Centrum tendineum','Centrum tendinium'], ['Pars sternalis','Pars costalis','Pars lumbalis','Hiatus aorticus'], 1),
+ KQ('Diafragma geçitlerinin seviyeleri hangisinde doğru verilmiştir?', 'Hiatus aorticus T12, hiatus oesophageus T10, foramen venae cavae T8–9', ['Hiatus aorticus T10, hiatus oesophageus T12, foramen venae cavae T8–9','Hiatus aorticus T8, hiatus oesophageus T10, foramen venae cavae T12','Üçü de T12 seviyesinde','Hiatus aorticus L1, hiatus oesophageus T8, foramen venae cavae T10'], 0),
+ KQ('Hiatus oesophageus’tan oesophagus ile birlikte ne geçer?', 'Sağ ve sol n. vagus', ['Aorta ve ductus thoracicus','V. cava inferior ve sağ n. phrenicus','V. azygos','Sol n. phrenicus'], 0),
+ KQ('Foramen venae cavae’den v. cava inferior ile birlikte ne geçer?', 'Sağ n. phrenicus', ['Sağ ve sol n. vagus','Aorta','Ductus thoracicus','Oesophagus'], 0),
+ // karın, pelvis
+ KQ('Karın ön-yan duvarındaki üç yassı kasın en yüzeyeli hangisidir?', ['M. obliquus externus abdominis','Obliquus externus abdominis','Obliquus externus'], ['M. obliquus internus abdominis','M. transversus abdominis','M. rectus abdominis','M. pyramidalis'], 1),
+ KQ('Karın kaslarının en derininde yer alan, lifleri horizontal seyreden kas hangisidir?', ['M. transversus abdominis','Transversus abdominis'], ['M. obliquus internus abdominis','M. obliquus externus abdominis','M. rectus abdominis','M. quadratus lumborum'], 1),
+ KQ('Lig. inguinale (Poupart bağı) hangi kasın aponevrozunun spina iliaca anterior superior ile tuberculum pubicum arasındaki kısmıdır?', 'M. obliquus externus abdominis', ['M. obliquus internus abdominis','M. transversus abdominis','M. rectus abdominis','M. pyramidalis'], 0),
+ KQ('Funiculus spermaticus etrafında m. cremaster’i meydana getiren kas hangisidir?', ['M. obliquus internus abdominis','Obliquus internus abdominis','Obliquus internus'], ['M. obliquus externus abdominis','M. transversus abdominis','M. rectus abdominis','M. pyramidalis'], 1),
+ KQ('Üzerinde intersectio tendinea bulunan kas hangisidir?', ['M. rectus abdominis','Rectus abdominis'], ['M. obliquus externus abdominis','M. transversus abdominis','M. pyramidalis','M. quadratus lumborum'], 1),
+ KQ('Linea alba nedir?', 'Proc. xiphoideus ile symphysis pubica arasında, üç yassı karın kasının aponevrozlarının birleşmesiyle oluşan yapı', ['Diafragmanın aponevrotik merkezi','Rectus kılıfının arka yaprağı','Lig. inguinale’nin diğer adı','M. rectus abdominis üzerindeki enine kiriş'], 0),
+ KQ('Symphysis pubica’dan başlayıp linea alba’da sonlanan, linea alba’yı geren küçük üçgen kas hangisidir?', ['M. pyramidalis','Pyramidalis'], ['M. rectus abdominis','M. quadratus lumborum','M. coccygeus','M. cremaster'], 1),
+ KQ('Karın arka duvarında, crista iliaca ile 12. kaburga arasında uzanan kas hangisidir?', ['M. quadratus lumborum','Quadratus lumborum'], ['M. latissimus dorsi','M. psoas major','M. transversus abdominis','M. erector spinae'], 1),
+ KQ('Canalis inguinalis için hangisi doğrudur?', 'Yaklaşık 4 cm; erkekte funiculus spermaticus, kadında lig. teres uteri geçer', ['Yaklaşık 10 cm; içinden a. femoralis geçer','Yaklaşık 4 cm; içinden rectum geçer','Yalnızca erkeklerde bulunur','Diafragmada bulunan bir geçittir'], 0),
+ KQ('Diaphragma pelvis’i oluşturan kaslar hangileridir?', 'M. levator ani ve m. coccygeus', ['M. levator ani ve m. pyramidalis','M. coccygeus ve m. quadratus lumborum','M. bulbospongiosus ve m. ischiocavernosus','M. sphincter ani externus ve internus'], 0),
+ KQ('Pelvis döşemesinin büyük kısmını kapatan, kubbe biçimli kas hangisidir?', ['M. levator ani','Levator ani'], ['M. coccygeus','M. transversus perinei profundus','M. bulbospongiosus','M. sphincter ani externus'], 1),
+ KQ('Perinede anal üçgende bulunan kaslar hangileridir?', 'M. sphincter ani externus ve m. sphincter ani internus', ['M. ischiocavernosus ve m. bulbospongiosus','M. transversus perinei profundus ve superficialis','M. levator ani ve m. coccygeus','M. sphincter urethrae ve m. bulbospongiosus'], 0),
+];
+const EKLEM_QS = [
+ // genel
+ KQ('Eklemler morfolojik ve fonksiyonel olarak hangi üç gruba ayrılır?', 'Fibröz, kartilaginöz ve synovial', ['Fibröz, kemik ve synovial','Sutura, symphysis ve plana','Tek, iki ve üç eksenli','Spheroidea, ellipsoidea ve plana'], 0),
+ KQ('Dişlerin mandibula ve maxilla ile yaptığı fibröz eklem hangisidir?', 'Gomphosis', ['Sutura','Syndesmosis','Synchondrosis','Symphysis'], 1),
+ KQ('Kafa kemikleri arasındaki dikiş tarzı eklemlere ne denir?', 'Sutura', ['Gomphosis','Syndesmosis','Symphysis','Synchondrosis'], 1),
+ KQ('Kemik yüzeylerini ligamentlerin sıkıca bağladığı fibröz eklem tipi hangisidir? (ör. alt tibia–fibula)', 'Syndesmosis', ['Sutura','Gomphosis','Symphysis','Synchondrosis'], 1),
+ KQ('Kemik uçları arasında hiyalin kıkırdak bulunan, erişkinde kemikleşip kaybolan eklem tipi hangisidir?', 'Synchondrosis', ['Symphysis','Syndesmosis','Sutura','Gomphosis'], 1),
+ KQ('Symphysis pubica ve omur gövdeleri arasındaki eklemler hangi gruptandır?', ['Symphysis','Kartilaginöz (symphysis)'], ['Synchondrosis','Syndesmosis','Synovial','Sutura'], 1),
+ KQ('Synovia’yı (eklem sıvısını) salgılayan yapı hangisidir?', ['Membrana synovialis','Synovial zar'], ['Membrana fibrosa','Cartilago articularis','Labrum articulare','Discus articularis'], 1),
+ KQ('Eklem kapsülünün dış, sağlam ve periosta kaynaşan tabakası hangisidir?', 'Membrana fibrosa', ['Membrana synovialis','Cartilago articularis','Labrum articulare','Meniscus'], 1),
+ KQ('Konkav eklem çukurluğunu genişleten ilave kıkırdak yapıya ne denir?', 'Labrum articulare', ['Meniscus articularis','Discus articularis','Cartilago articularis','Bursa'], 1),
+ KQ('C harfi şeklindeki eklem içi ilave kıkırdağa ne denir?', ['Meniscus articularis','Meniscus'], ['Discus articularis','Labrum articulare','Bursa','Cartilago articularis'], 1),
+ KQ('Hangisi çıkığı (luxatio) engelleyen faktörlerden biri değildir?', 'Eklem içi basıncın atmosfer basıncından yüksek olması', ['Eklem kapsülü ve bağları','Eklem çevresindeki kasların desteği','Eklem yüzlerinin birbirine uygunluğu','Eklem içi basıncın atmosferden düşük olması'], 0),
+ // tipler
+ KQ('Omuz ve kalça eklemi hangi tiptedir?', ['Art. spheroidea','Spheroidea','Küresel'], ['Art. ellipsoidea','Ginglymus','Art. sellaris','Art. bicondylaris'], 1),
+ KQ('El bileği eklemi (art. radiocarpalis) hangi tiptedir?', ['Art. ellipsoidea','Ellipsoidea'], ['Art. spheroidea','Ginglymus','Art. trochoidea','Art. plana'], 1),
+ KQ('Art. humeroulnaris hangi tiptedir?', ['Ginglymus','Art. trochlea'], ['Art. trochoidea','Art. spheroidea','Art. sellaris','Art. plana'], 1),
+ KQ('Art. radioulnaris proximalis hangi tiptedir?', ['Art. trochoidea','Trochoidea'], ['Ginglymus','Art. ellipsoidea','Art. sellaris','Art. plana'], 1),
+ KQ('Eyer (sellaris) tipi eklem örneği hangisidir?', ['Art. carpometacarpea pollicis','Carpometacarpea pollicis'], ['Art. humeroulnaris','Art. genus','Art. coxae','Art. radiocarpalis'], 1),
+ KQ('Diz eklemi hangi tiptedir?', ['Art. bicondylaris','Bicondylaris'], ['Art. spheroidea','Ginglymus','Art. trochoidea','Art. plana'], 1),
+ KQ('Yalnızca kayma (glissment) hareketi yapan, belirli ekseni olmayan eklem tipi hangisidir?', ['Art. plana','Plana'], ['Art. sellaris','Art. trochoidea','Art. ellipsoidea','Ginglymus'], 1),
+ KQ('Ön kolun vertikal eksen etrafında dışa dönmesine ne denir?', 'Supinasyon', ['Pronasyon','Eversiyon','Abduksiyon','Sirkumdüksiyon'], 1),
+ KQ('Ayak tabanının içe bakmasına ne denir?', 'İnversiyon', ['Eversiyon','Supinasyon','Adduksiyon','Retraksiyon'], 1),
+ KQ('Alt çenenin öne doğru hareketine ne denir?', 'Protraksiyon', ['Retraksiyon','Elevasyon','Depresyon','Rotasyon'], 1),
+ KQ('Ekleme katılan kemikler arasındaki açının küçülmesine ne denir?', 'Fleksiyon', ['Ekstensiyon','Abduksiyon','Rotasyon','Sirkumdüksiyon'], 1),
+ // gövde ve baş
+ KQ('Kafatasındaki tek hareketli eklem hangisidir?', ['Art. temporomandibularis','Temporomandibularis','Çene eklemi'], ['Art. atlantooccipitalis','Sutura coronalis','Synchondrosis sphenooccipitalis','Art. atlantoaxialis mediana'], 1),
+ KQ('Çene eklemini oluşturan yapılar hangileridir?', 'Fossa mandibularis (os temporale) ve caput mandibulae', ['Condylus occipitalis ve atlas','Maxilla ve mandibula','Os zygomaticum ve mandibula','Processus mastoideus ve mandibula'], 0),
+ KQ('Çene ekleminde eklem boşluğunu ikiye ayıran yapı hangisidir?', ['Discus articularis','Diskus'], ['Meniscus','Labrum articulare','Lig. anulare','Bursa'], 1),
+ KQ('Art. atlantooccipitalis hangi yapılar arasında ve hangi tiptedir?', 'Atlasın massa lateralis’leri ile condylus occipitalis’ler; ellipsoidea (condylaris)', ['Dens axis ile atlas; trochoidea','Atlas ile axis; plana','Oksipital kemik ile axis; spheroidea','Atlas ile mandibula; ginglymus'], 0),
+ KQ('Başın rotasyonunu sağlayan, dens axis ile atlas arasındaki eklem hangisidir?', ['Art. atlantoaxialis mediana','Atlantoaxialis mediana'], ['Art. atlantooccipitalis','Art. atlantoaxialis lateralis','Art. zygapophysialis','Symphysis intervertebralis'], 1),
+ KQ('Vücutta kaç discus intervertebralis vardır ve hangi omurlar arasındadır?', '23; C2–S1 arası', ['24; C1–S1 arası','26; C1–Co1 arası','23; C1–L5 arası','33; tüm omurlar arası'], 0),
+ KQ('Discus intervertebralis’in merkezi jelatinöz kısmına ne denir?', 'Nucleus pulposus', ['Anulus fibrosus','Lig. longitudinale','Cartilago articularis','Discus interpubicus'], 1),
+ KQ('Discus intervertebralis’in periferik fibrokartilaginöz kısmına ne denir?', 'Anulus fibrosus', ['Nucleus pulposus','Membrana fibrosa','Labrum','Lig. flavum'], 1),
+ KQ('Komşu omurların eklem çıkıntıları arasındaki plana tipi eklem hangisidir?', ['Art. zygapophysialis','Zygapophysialis'], ['Symphysis intervertebralis','Art. costovertebralis','Art. atlantoaxialis mediana','Synchondrosis'], 1),
+ KQ('Bir kaburga ile omur arasında kaç eklem oluşur ve tipleri nedir?', '2 eklem; ikisi de plana', ['1 eklem; spheroidea','2 eklem; biri trochoidea biri plana','3 eklem; plana','2 eklem; ikisi de symphysis'], 0),
+ // üst taraf
+ KQ('Klavikulanın sternal ucu ile sternum arasındaki, içinde discus articularis bulunan eklem hangisidir?', ['Art. sternoclavicularis','Sternoclavicularis'], ['Art. acromioclavicularis','Art. sternocostalis','Art. humeri','Art. costovertebralis'], 1),
+ KQ('Klavikulanın akromial ucu ile akromion arasındaki eklem hangisidir?', ['Art. acromioclavicularis','Acromioclavicularis'], ['Art. sternoclavicularis','Art. humeri','Art. coracoclavicularis','Art. scapulothoracica'], 1),
+ KQ('Omuz eklemi hangi yapılar arasında oluşur?', 'Cavitas glenoidalis ile caput humeri', ['Acromion ile caput humeri','Processus coracoideus ile humerus','Klavikula ile caput humeri','Fossa olecrani ile ulna'], 0),
+ KQ('Omuz ekleminde eklem çukurluğunu genişleten yapı hangisidir?', ['Labrum glenoidale','Glenoid labrum'], ['Labrum acetabulare','Meniscus','Lig. anulare radii','Discus articularis'], 1),
+ KQ('Omuz eklemi çıkıkları genellikle nereye doğru olur, neden?', 'Koltuk altına; kapsülün en zayıf yeri alt kısımdır', ['Öne; kapsülün en zayıf yeri ön kısımdır','Yukarı; acromion zayıftır','Arkaya; bağlar arkada yoktur','Omuzda çıkık olmaz'], 0),
+ KQ('Vücutta içinden kas kirişi geçen tek eklem hangisidir?', ['Omuz eklemi','Art. humeri'], ['Diz eklemi','Kalça eklemi','Dirsek eklemi','Ayak bileği eklemi'], 1),
+ KQ('Dirsek eklemini oluşturan üç eklem hangileridir?', 'Art. humeroulnaris, art. humeroradialis, art. radioulnaris proximalis', ['Art. humeroulnaris, art. radiocarpalis, art. radioulnaris distalis','Art. humeri, art. humeroradialis, art. radiocarpalis','Art. humeroradialis, art. radioulnaris distalis, art. mediocarpalis','Art. humeroulnaris, art. humeri, art. acromioclavicularis'], 0),
+ KQ('Art. radioulnaris proximalis’te radius başını halka şeklinde saran bağ hangisidir?', ['Lig. anulare radii','Ligamentum anulare radii'], ['Lig. transversum atlantis','Membrana interossea antebrachii','Lig. collaterale ulnare','Lig. inguinale'], 1),
+ KQ('Elden gelen kuvvet hangi sırayla humerusa aktarılır?', 'Radius → membrana interossea antebrachii → ulna → humerus', ['Ulna → radius → humerus','Radius → humerus doğrudan','Karpallar → ulna → radius → humerus','Ulna → membrana interossea → radius → humerus'], 0),
+ KQ('Supinasyon ve pronasyonu birlikte yapan eklemler hangileridir?', 'Art. radioulnaris proximalis ve distalis', ['Art. humeroulnaris ve humeroradialis','Art. radiocarpalis ve mediocarpalis','Art. humeri ve cubiti','Artt. carpometacarpales'], 0),
+ KQ('El bileği ekleminde (art. radiocarpalis) eklem yapmayan karpal kemik hangisidir?', ['Os pisiforme','Pisiforme'], ['Os scaphoideum','Os lunatum','Os triquetrum','Hepsi katılır'], 1),
+ KQ('Karpal kemiklerin proksimal ve distal sıraları arasındaki ekleme ne denir?', ['Art. mediocarpalis','Mediocarpalis'], ['Art. intercarpalis','Art. radiocarpalis','Artt. carpometacarpales','Artt. interphalangeales'], 1),
+ // alt taraf
+ KQ('Alt taraf kavşağı eklemleri hangileridir?', 'Art. sacroiliaca ve symphysis pubica', ['Art. coxae ve art. genus','Art. sacroiliaca ve art. coxae','Symphysis pubica ve art. coxae','Art. lumbosacralis ve art. sacroiliaca'], 0),
+ KQ('Symphysis pubica’da iki pubis arasındaki disk hangisidir?', 'Discus interpubicus', ['Discus intervertebralis','Meniscus','Labrum acetabulare','Discus articularis'], 1),
+ KQ('Kalça eklemi hangi yapılar arasında oluşur?', 'Caput femoris ile acetabulum', ['Trochanter major ile acetabulum','Caput femoris ile os sacrum','Collum femoris ile os ilii','Condylus femoris ile acetabulum'], 0),
+ KQ('Acetabulumun kenarında konkav eklem yüzünü artıran halka hangisidir?', ['Labrum acetabulare','Acetabular labrum'], ['Labrum glenoidale','Meniscus lateralis','Discus interpubicus','Lig. teres'], 1),
+ KQ('Kalça eklemi çıkıkları en çok hangi harekette olur?', 'Aşırı abduksiyonda', ['Aşırı fleksiyonda','Aşırı adduksiyonda','İç rotasyonda','Ekstensiyonda'], 0),
+ KQ('Doğuştan kalça çıkığı için hangisi doğrudur?', 'Kızlarda 6–8 kat fazla; kundak önemli bir risk faktörüdür', ['Erkeklerde 6–8 kat fazladır','Kundak koruyucudur','Erken teşhisin önemi yoktur','Yalnızca yetişkinlerde görülür'], 0),
+ KQ('Vücudun en büyük eklemi hangisidir?', ['Art. genus','Diz eklemi','Art. genu'], ['Art. coxae','Art. humeri','Art. talocruralis','Art. cubiti'], 1),
+ KQ('Diz ekleminde femur ve tibia yüzlerinin uyumunu sağlayan yapılar hangileridir?', ['Meniscus medialis ve lateralis','Menisküsler','Meniscuslar'], ['Labrum acetabulare','Discus interpubicus','Lig. anulare','Bursa suprapatellaris'], 1),
+ KQ('Meniscus medialis ve lateralis şekil olarak nasıldır?', 'Medialis C şeklinde; lateralis uçları kapanmaya yakın C', ['Medialis O şeklinde; lateralis C','İkisi de disk şeklinde','Medialis kapanmaya yakın C; lateralis açık C','İkisi de üçgen'], 0),
+ KQ('Tibia üst ucu ile fibula başı arasındaki eklem hangi tiptedir?', ['Art. plana','Plana'], ['Syndesmosis','Ginglymus','Art. trochoidea','Symphysis'], 1),
+ KQ('Ayak bileği eklemi (art. talocruralis) hangi kemikler arasında ve hangi tiptedir?', 'Tibia, fibula ve talus; ginglymus', ['Tibia ve calcaneus; plana','Talus ve calcaneus; ellipsoidea','Fibula ve talus; spheroidea','Tibia, talus ve os naviculare; sellaris'], 0),
+ KQ('Tarsal kemiklerin distal sırası ile metatarsların tabanları arasındaki eklemlere ne ad verilir?', ['Lisfranc eklemi','Artt. tarsometatarsales'], ['Chopart eklemi','Artt. intertarseae','Art. talocruralis','Artt. metatarsophalangeales'], 1),
+ KQ('Tibia ile fibulanın margo interosseus’ları arasındaki bağ dokusu hangisidir?', 'Membrana interossea cruris', ['Membrana interossea antebrachii','Syndesmosis tibiofibularis','Lig. patellae','Membrana fibrosa'], 1),
+];
+const keMcq = L => L.map(x => ({ q:x.q, o:[x.a[0], ...shuffle(x.w).slice(0, 4)] }));
+function buildSozluKE(){      // kas modeli: noktasız sözlü — kısa cevaplı kas ve eklem soruları
+  const K = shuffle(KAS_QS.filter(x => x.t)).slice(0, 12), E = shuffle(EKLEM_QS.filter(x => x.t)).slice(0, 8);
+  return shuffle(K.concat(E)).map(x => ({ q:x.q, a:x.a }));
+}
 function buildVize(n, detailed){
-  const A = poolAnat(), B = BONE_QS.map(cp), T = poolTerms(), N = NOTES_QS.map(cp);
+  const A = poolAnat(), B = BONE_QS.map(cp), T = poolTerms(), N = NOTES_QS.map(cp), K = keMcq(KAS_QS), E = keMcq(EKLEM_QS);
   return mixPools(detailed
-    ? [[N, 28], [B, 6], [T, 4], [poolDetail(), 10], [A, 2]]
-    : [[N, 24], [B, 6], [T, 4], [poolRegions(), 4], [A, 2]], n);
+    ? [[K, 14], [E, 12], [N, 14], [B, 2], [T, 1], [poolDetail(), 6], [A, 1]]
+    : [[K, 12], [E, 10], [N, 10], [B, 3], [T, 2], [poolRegions(), 2], [A, 1]], n);
 }
 function buildOral(){
   const L = [];
   ANAT_TYPES.forEach(t => { L.push({ q:t.q, a:t.n }); L.push({ q:'"' + t.n + '" nedir? Kısaca anlat.', a:t.d }); });
   L.push({ q:'Anatomi sözcüğünün Latince karşılığı nedir?', a:'Dissectio (Diseksiyon)' });
   BONE_QS.forEach(b => { if (!/aşağıdakilerden|hangisi doğru|ilgili hangisi/i.test(b.q)) L.push({ q:b.q, a:b.o[0] }); });
+  KAS_QS.concat(EKLEM_QS).forEach(x => { if (!/hangisi .*değildir/i.test(x.q)) L.push({ q:x.q, a:x.a[0] }); });
   termList().forEach(t => L.push({ q:'"' + t[0] + '" terimi ne demektir?', a:t[1] }));
   SKELETON_REGIONS.forEach(r => {
     if (r.d) L.push({ q:r.latin + ' (' + r.tr + ') hakkında bildiklerini anlat.', a:r.d });
-    L.push({ q:'"' + r.tr + '" kemiğinin Latince adı nedir?', a:r.latin });
+    L.push({ q:'"' + r.tr + '" ' + (r.jt ? '' : 'kemiğinin ') + 'Latince adı nedir?', a:r.latin });
   });
   return shuffle(L).slice(0, 20);
 }
@@ -3704,7 +3839,9 @@ function activateModel(M){
   if (M.kind === 'skeleton'){       // yeni eklenen etiketleri en yakın yüzeye yapıştır (kullanıcı kaydı yoksa)
     REGIONS.forEach(r => {
       if (!SNAP_NEW.has(r.latin) || r.sv || !r.p) return;
-      const h = nearestSurface(new THREE.Vector3(...r.p), Math.sign(r.p[2]) || 0, new THREE.Vector3(...r.n).normalize());
+      for (let k = 0; k < (M.rotY || 0); k++){ r.p = [r.p[2], r.p[1], -r.p[0]]; r.n = [r.n[2], r.n[1], -r.n[0]]; }   // kayıtlı döndürmeye uydur
+      const zs = (r.mid || (M.rotY || 0) % 2) ? 0 : (Math.sign(r.p[2]) || 0);
+      const h = nearestSurface(new THREE.Vector3(...r.p), zs, new THREE.Vector3(...r.n).normalize());
       if (h){ r.p = h.point.toArray(); r.n = h.normal.toArray(); }
       r.sv = true;
     });
@@ -3734,8 +3871,10 @@ function switchModel(k){
   REGIONS.length = 0; REGIONS.push(...M.regions);
   applyDefaults();
   buildList(); buildEdSel();
-  document.getElementById('gloss').hidden = M.kind === 'body';
-  document.getElementById('bRotY').hidden = M.kind !== 'skeleton';
+  document.getElementById('gloss').hidden = M.kind === 'body' || M.kind === 'muscle';
+  document.getElementById('bRotY').hidden = M.kind !== 'skeleton' && M.kind !== 'muscle';
+  document.body.classList.toggle('muscle-mode', M.kind === 'muscle');
+  setJointView(0);
   document.getElementById('bFlipV').hidden = M.kind !== 'bone';
   document.getElementById('edSwap').hidden = M.kind !== 'bone';
   document.getElementById('edRadM').hidden = document.getElementById('edRadP').hidden = M.kind !== 'skeleton';
@@ -3890,6 +4029,18 @@ const toCam = new THREE.Vector3();
 
 function ease(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; }
 
+/* iskelet: kemik / eklem noktalarını süz (0 hepsi, 1 yalnız kemik, 2 yalnız eklem) */
+let jointView = 0;
+const JV_TXT = ['Kemik + eklem', 'Yalnızca kemikler', 'Yalnızca eklemler'];
+function setJointView(v){
+  jointView = v;
+  const b = document.getElementById('bJoints');
+  if (b){ b.textContent = JV_TXT[v]; b.setAttribute('aria-pressed', String(v !== 0)); }
+  if (v && activeIdx >= 0 && markers[activeIdx] && (v === 1 ? markers[activeIdx].region.jt : !markers[activeIdx].region.jt))
+    document.getElementById('cardX').click();
+}
+document.getElementById('bJoints').addEventListener('click', () => setJointView((jointView + 1) % 3));
+
 function frame(now){
   requestAnimationFrame(frame);
 
@@ -3915,7 +4066,8 @@ function frame(now){
     v3.copy(m.pos).project(camera);
     const facingOK = m.normal.dot(toCam) > 0.12;
     m.el.classList.toggle('behind', editing && !facingOK);
-    const visible = v3.z < 1 && (facingOK || editing) &&
+    const hideJ = jointView && !editing && !document.body.classList.contains('testing') && (jointView === 1 ? !!m.region.jt : !m.region.jt);
+    const visible = !hideJ && v3.z < 1 && (facingOK || editing) &&
                     v3.x > -1.1 && v3.x < 1.1 && v3.y > -1.1 && v3.y < 1.1;
     m.el.classList.toggle('off', !visible);
     if (!visible) continue;
@@ -4100,7 +4252,89 @@ const NOTES=[
 '**Os naviculare** (kayık): arkası konkav (caput tali), önü konveks (3 cuneiform).',
 '**Os cuboideum** (kübik): ön-dış; calcaneus ve metatarslarla eklem.',
 '**Ossa cuneiformia**: kama şeklinde, 3 adet; **mediale en büyük**, **intermedium en küçük**.',
-'**Metatarslar** (I-V, içten dışa): basis, corpus, caput metatarsi. **Falanks** (14): basis, corpus, caput phalangis; başparmakta media yok.']}
+'**Metatarslar** (I-V, içten dışa): basis, corpus, caput metatarsi. **Falanks** (14): basis, corpus, caput phalangis; başparmakta media yok.']},
+{t:'Kaslar – genel',i:[
+'3 tip: **çizgili (iskelet)** kas istemli; **düz kas** iç organ ve damar duvarında, istemsiz (otonom); **kalp kası** yapıca çizgiliye benzer ama istemsiz.',
+'Kemik ve eklemler hareketin **pasif**, iskelet kasları **aktif** unsurudur. İskelet kasları vücut ağırlığının **%40**’ı; kasın **%75**’i su.',
+'Kılıflar dıştan içe: **epimisyum** (tüm kas) → **perimisyum** (fasciculus) → **endomisyum** (tek lif).',
+'Kas en az iki kemiğe tutunur (bir eklemi çaprazlar). **Origo**: sabit, gövdeye yakın uç. **Insertio**: hareket eden, uzak uç. Tendonun yassı-yayvan şekli: **aponeurosis**.',
+'**Venter** (karın) = kas gövdesi; iki karınlı kas: **m. digastricus**. **Caput** (baş): biceps, triceps, quadriceps.',
+'**Sinergist** aynı işi, **antagonist** zıt işi yapar. **Tonus**: istirahatteki gerginlik. **Hipertrofi** büyüme, **atrofi** küçülme, **iskemi** yetersiz kan.',
+'**Motor nokta**: sinirin kasa girdiği yer. **Motor ünite**: bir motor sinir + innerve ettiği tüm lifler. İnce hareketli kaslarda motor ünite sayısı çok.',
+'İsimlendirme: şekil (quadratus, orbicularis, teres), lif yönü (rectus, obliquus, transversus), yer (supra/infraspinatus), yapışma (sternothyroideus), fonksiyon (flexor, extensor, adductor, abductor).']},
+{t:'Baş kasları',i:[
+'**Mimik kaslar**: yüz kemiklerinden başlar, yüz derisinde biter. Siniri **n. facialis (VII)**.',
+'**M. epicranius** (m. occipitofrontalis + m. temporoparietalis): saçlı deri altında; ortası **galea aponeurotica**.',
+'Göz: **m. orbicularis oculi** göz kapağını kapatır/kırpar; **m. corrugator supercilii** kaşları çatar; **m. levator palpebrae superioris** üst kapağı açar.',
+'Burun: **m. procerus** (burun kökü), **m. nasalis** (burun delikleri).',
+'Ağız: **m. orbicularis oris** dudakları kapatır; **m. buccinator** yanakta, üfleme (nefesli çalgı); **m. zygomaticus major** gülme (ağız köşesi yukarı); **m. risorius** tebessüm (ağız köşesi dışa); **m. levator labii superioris** üst dudağı kaldırır, **m. depressor labii inferioris** alt dudağı indirir.',
+'**Çiğneme kasları (4)**: m. temporalis, m. masseter, m. pterygoideus medialis, m. pterygoideus lateralis. Hepsi **mandibulada** sonlanır; siniri **n. mandibularis**.',
+'**M. pterygoideus lateralis** çeneyi **açar**; diğer üçü güçlü **kapatır**.']},
+{t:'Boyun kasları',i:[
+'**Platysma**: deri altında, ince; boyun derisini gerer. Siniri **n. facialis**.',
+'**M. sternocleidomastoideus**: sternum + klavikula → **processus mastoideus**. Tek taraf: baş aynı yana eğilir, yüz karşıya döner. Siniri **n. accessorius**.',
+'**Prevertebral** (önde): m. longus colli, m. longus capitis, m. rectus capitis anterior.',
+'**Skalenler** (yanda; anterior, medius, posterior): boyun omurlarının transvers çıkıntıları → **1. ve 2. kaburga**. Kaburgaları kaldırıp **inspirasyona** yardım eder.',
+'**Hyoid üstü (4)**: digastricus, stylohyoideus, mylohyoideus, geniohyoideus → hyoidi **yukarı** kaldırır (yutkunma).',
+'**Hyoid altı (4)**: sternohyoideus, sternothyroideus, thyrohyoideus, omohyoideus → hyoidi **aşağı** çeker.']},
+{t:'Sırt kasları',i:[
+'**M. trapezius**: en yüzeyel; oksipital, lig. nuchae, boyun-göğüs omurları → **klavikula, acromion, spina scapulae**. Siniri **n. accessorius**.',
+'**M. latissimus dorsi**: fascia thoracolumbalis (alt göğüs + bel omurları, sakrum, crista iliaca, son kaburgalar) → humerusun **crista tuberculi minoris**. **Kolun en kuvvetli adduktoru**; **plica axillaris posterior**. Siniri **n. thoracodorsalis**.',
+'**Mm. rhomboidei**: son boyun + ilk 5 göğüs omuru → skapulanın **iç kenarı** (şınav).',
+'**M. levator scapulae**: ilk 4 boyun omuru → skapulanın **üst köşesi**.',
+'**M. serratus posterior superior/inferior**: omurlar–kaburgalar; solunuma yardım. **M. splenius capitis/cervicis**: trapeziusun derininde; baş-boynu eğer/arkaya çeker.',
+'**M. erector spinae**: sakrum, bel omurları, crista iliaca’dan başlar; dıştan içe **iliocostalis – longissimus – spinalis**. İki taraflı: omurgayı arkaya eğer.',
+'**Derin ense kasları (5)**: atlas, axis ve oksipital kemik arasında; başı arkaya / yana eğer.']},
+{t:'Göğüs kasları ve diafragma',i:[
+'**M. pectoralis major**: klavikula, sternum, kaburgalar → humerusun **crista tuberculi majoris**. Aksillanın ön duvarı, **plica axillaris anterior**; güçlü adduktor.',
+'**M. pectoralis minor**: **3.–5. kaburgalar → processus coracoideus**. **M. subclavius**: klavikula–1. kaburga arası yastık.',
+'**M. serratus anterior**: ilk 8–10 kaburga → skapulanın iç kenarı; kolu 180° kaldırmaya yardım. Siniri **n. thoracicus longus**; felcinde **kanat skapula**.',
+'**Mm. intercostales**: externi **inspirasyon**, interni **ekspirasyon**. **M. transversus thoracis**: ekspirasyona yardım.',
+'**Diaphragma**: göğüs ve karın boşluğunu ayıran kubbe; **solunumun esas kası**, siniri **n. phrenicus**. Kısımları: pars sternalis, costalis, lumbalis + **centrum tendineum** (aponevrotik merkez).',
+'Geçitler: **hiatus aorticus T12** (aorta, v. azygos, ductus thoracicus) · **hiatus oesophageus T10** (oesophagus + sağ-sol n. vagus) · **foramen venae cavae T8–9** (v. cava inferior + sağ n. phrenicus).']},
+{t:'Karın ve pelvis kasları',i:[
+'Ön-yan duvar (5): **m. obliquus externus** (en yüzeyel), **m. obliquus internus**, **m. transversus** (en derin, lifler yatay), **m. rectus abdominis**, **m. pyramidalis**. Arka duvar: **m. quadratus lumborum** (crista iliaca–12. kaburga).',
+'Obliquus externus: son 8 kaburgadan başlar; SIAS–tuberculum pubicum arasındaki kısmı **lig. inguinale (Poupart)**.',
+'Obliquus internus: bazı lifleri **m. cremaster**’i yapar (testis ısısı).',
+'**M. rectus abdominis**: pubis → sternum alt ucu; üzerinde **intersectio tendinea**; **rectus kılıfı** (vagina) üç yassı kasın aponevrozundan.',
+'**Linea alba**: proc. xiphoideus–symphysis pubica; aponevrozların orta hatta kaynaşması; göbek üzerinde. **M. pyramidalis** linea albayı gerer.',
+'**Canalis inguinalis**: ~4 cm; iç delik anulus inguinalis profundus, dış delik superficialis. Erkekte **funiculus spermaticus**, kadında **lig. teres uteri**.',
+'**Diaphragma pelvis**: **m. levator ani** + **m. coccygeus**; organları taşır. Erkekte rectum + urethra, kadında + vagina geçer.',
+'Perine: **ürogenital üçgen** (transversus perinei, ischiocavernosus, bulbospongiosus, sphincter urethrae) ve **anal üçgen** (sphincter ani externus/internus).']},
+{t:'Eklemler – genel',i:[
+'**I. Fibröz** (hareketsiz): **syndesmosis** (bağlarla; alt tibia–fibula), **sutura** (kafa kemikleri), **gomphosis** (diş–çene).',
+'**II. Kartilaginöz** (az hareketli): **synchondrosis** (hiyalin; erişkinde kemikleşir, ör. sphenooccipitalis), **symphysis** (geniş kıkırdak; symphysis pubica, discus intervertebralis).',
+'**III. Synovial** (tam hareketli): eklem kıkırdağı (hiyalin ~2,5 mm), kapsül (**membrana fibrosa** dışta, **membrana synovialis** içte, synovia salgılar), eklem boşluğu, bağlar (eklem içi, kapsüler, eklem dışı).',
+'İlave kıkırdaklar: **labrum** çukuru genişletir; **meniscus** C şeklinde; **discus** disk şeklinde.',
+'Çıkığı önleyenler: eklem içi basıncın **düşük** olması, kapsül ve bağlar, çevre kaslar, yüzlerin uyumu.']},
+{t:'Synovial eklem tipleri ve hareketler',i:[
+'Eksen: **tek** (humeroulnaris; radioulnaris prox.), **iki** (radiocarpea), **üç** (omuz, kalça), **eksensiz** (kayma).',
+'**Spheroidea**: omuz, kalça · **Ellipsoidea**: el bileği · **Ginglymus**: humeroulnaris (ayak bileği de) · **Trochoidea**: radioulnaris prox./distalis, atlantoaxialis mediana · **Sellaris** (eyer): carpometacarpea pollicis · **Bicondylaris**: diz (çene eklemi de) · **Plana**: karpal/tarsal kemikler arası.',
+'**Fleksiyon** açı küçülür, **ekstensiyon** büyür; **abduksiyon** orta hattan uzaklaşma, **adduksiyon** yaklaşma; **rotasyon** dikey eksende dönme; **sirkumdüksiyon** hepsinin karışımı.',
+'**Supinasyon** ön kol dışa, **pronasyon** içe; **inversiyon** taban içe, **eversiyon** dışa; **protraksiyon/retraksiyon** çenenin öne/arkaya; **elevasyon/depresyon** kaldırma/indirme.']},
+{t:'Baş ve gövde eklemleri',i:[
+'**Art. temporomandibularis** (çene): kafatasının tek hareketli eklemi; fossa mandibularis + caput mandibulae; **discus articularis** boşluğu ikiye böler.',
+'**Art. atlantooccipitalis**: atlas massa lateralis + condylus occipitalis; **ellipsoidea**; baş öne-arkaya, yana.',
+'**Art. atlantoaxialis mediana**: dens axis + atlas arcus anterior + lig. transversum atlantis; **trochoidea**; **başın rotasyonu**. Lateralis: plana.',
+'**Symphysis intervertebralis**: **23 discus** (C2–S1); merkez **nucleus pulposus**, çevre **anulus fibrosus**. Gün içinde boy 1–2 cm kısalır.',
+'**Art. zygapophysialis**: eklem çıkıntıları arası, plana.',
+'**Artt. costovertebrales**: kaburga başı–omur gövdesi ve tuberculum costae–proc. transversus (2 eklem, plana). **Artt. sternocostales**: plana.']},
+{t:'Üst taraf eklemleri',i:[
+'Kavşak: **art. sternoclavicularis** (plana, discus var, çıkığı nadir) ve **art. acromioclavicularis** (plana).',
+'**Art. humeri** (omuz): cavitas glenoidalis + caput humeri; **spheroidea**; **labrum glenoidale**. Kapsülün zayıf yeri alt: çıkık **koltuk altına**. En hareketli, en çok çıkan eklem; içinden **kas kirişi geçen tek eklem**.',
+'**Art. cubiti** (dirsek) = ortak kapsülde 3 eklem: **humeroulnaris** (trochlea–incisura trochlearis, ginglymus), **humeroradialis** (capitulum–radius başı, spheroidea), **radioulnaris proximalis** (trochoidea, **lig. anulare radii**).',
+'**Membrana interossea antebrachii**: radius–ulna; kuvvet el → radius → ulna → humerus.',
+'**Art. radioulnaris distalis**: trochoidea; proksimal ile birlikte supinasyon-pronasyon.',
+'**Art. radiocarpalis** (el bileği): radius + proksimal karpallar (**pisiforme katılmaz**); ellipsoidea; ulna ile arada discus.',
+'El: art. mediocarpalis (iki karpal sıra arası), intercarpales, **carpometacarpales**, **metacarpophalangeales**, **interphalangeales**.']},
+{t:'Alt taraf eklemleri',i:[
+'Kavşak: **art. sacroiliaca** (çok sınırlı, güçlü bağlar) ve **symphysis pubica** (**discus interpubicus**; gebelikte gevşer).',
+'**Art. coxae** (kalça): caput femoris + acetabulum; **spheroidea**; **labrum acetabulare**; kapsül kalın. Çıkık en çok **aşırı abduksiyonda**. Doğuştan kalça çıkığı kızlarda 6–8 kat fazla; kundak risk.',
+'**Art. genus** (diz): vücudun **en büyük** eklemi; femur ve tibia kondilleri; **bicondylaris**. **Meniscus medialis** (C) ve **lateralis** (kapanmaya yakın C). Eklem içinde çapraz bağlar; fleksiyonda biraz rotasyon.',
+'**Art. tibiofibularis** (üstte, plana) · **syndesmosis tibiofibularis** (altta) · **membrana interossea cruris**.',
+'**Art. talocruralis** (ayak bileği): tibia + fibula çatalı ve talus; **ginglymus**; plantar ve dorsal fleksiyon.',
+'Ayak: **artt. intertarseae** (plana) ve **artt. tarsometatarsales = Lisfranc eklemi**.']}
+
 ];
 const body=document.getElementById('notesBody');
 const fmt=t=>t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
