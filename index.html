@@ -2830,9 +2830,10 @@ function docFrame(){
     const r = docRenderer();
     r.setPixelRatio(1); r.setSize(w, h, false);
     s.cam.aspect = w / h;
-    const fit = Math.max(s.size.y * 1.6, (s.size.x * 1.9) / s.cam.aspect);         // baş üstünde alkış, yanlarda dans için geniş pay
+    const DOC_SCALE = 0.75;                                                          // doktorun boyutu (1 = önceki boy)
+    const fit = Math.max(s.size.y * 1.6, (s.size.x * 1.9) / s.cam.aspect) / DOC_SCALE;   // baş üstünde alkış, yanlarda dans için geniş pay
     const dist = (fit / 2) / Math.tan(THREE.MathUtils.degToRad(s.cam.fov / 2));
-    const ty = s.c.y + s.size.y * 0.17;                                              // ayaklar altta kalsın, boşluk başın üstünde olsun
+    const ty = s.c.y - s.size.y * 0.5 + fit * 0.419;                                 // ayaklar hep aynı yerde (altta) kalsın
     s.cam.position.set(s.c.x, ty, s.c.z + dist);
     s.cam.lookAt(s.c.x, ty, s.c.z);
     s.cam.updateProjectionMatrix();
