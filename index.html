@@ -1454,7 +1454,7 @@ JT_RAW.forEach(a => { SKELETON_DEFAULTS[a[0]] = { p:a[2].slice(), n:a[3].slice()
 /* ---------- Kas modeli: temel kaslar (kaslar_1.pdf) ----------
    Konumlar YAKLAŞIKTIR (x ön, y yukarı, z yan; boy 2 birim) ve açılışta en yakın yüzeye yapıştırılır. "Düzenle" ile ince ayar yapılabilir.
    Satır: [latin, türkçe, renk, p, n, çift mi, açıklama, diğer yazımlar] */
-const KC = { bas:'#3b8cff', boyun:'#2fd07a', gogus:'#ff5ab8', karin:'#1fc7c7', sirt:'#ff8a1f' };
+const KC = { bas:'#3b8cff', boyun:'#2fd07a', gogus:'#ff5ab8', karin:'#1fc7c7', sirt:'#ff8a1f', kol:'#e8c43a', bacak:'#b57cff' };
 const KAS_RAW = [
  ['M. occipitofrontalis','Alın-artkafa kası',KC.bas,[0.11,1.96,0.03],[0.9,0.4,0],1,"Saçlı derinin altında (m. epicranius). Oksipital kemikten kaşlara uzanır; ortası galea aponeurotica. Siniri n. facialis.",['M. epicranius','Epicranius']],
  ['M. temporalis','Şakak kası',KC.bas,[0.03,1.92,0.08],[0,0.2,1],1,"Çiğneme kası. Şakak bölgesinden başlar, mandibulada sonlanır; çeneyi kapatır. Siniri n. mandibularis.",[]],
@@ -1473,6 +1473,9 @@ const KAS_RAW = [
  ['M. obliquus externus abdominis','Dış eğik karın kası',KC.karin,[0.07,1.25,0.12],[0.5,0,0.9],1,"Üç yassı karın kasının en yüzeyeli. Son 8 kaburgadan başlar; aponevrozu lig. inguinale'yi yapar. (Derininde obliquus internus ve transversus.)",['M. obliquus externus','Obliquus externus']],
  ['M. trapezius','Kukuleta kası',KC.sirt,[-0.08,1.60,0.06],[-1,0.3,0.2],1,"Sırtın en yüzeyel kası. Oksipital kemik, boyun ve göğüs omurlarından başlar; klavikula, acromion ve spina scapulae'da sonlanır. Siniri n. accessorius.",[]],
  ['M. latissimus dorsi','Geniş sırt kası',KC.sirt,[-0.07,1.35,0.11],[-0.8,0,0.5],1,"Alt göğüs ve bel omurları, sakrum, crista iliaca'dan başlar; humerusun crista tuberculi minoris'inde sonlanır. Kolun en güçlü adduktoru. Siniri n. thoracodorsalis.",[]],
+ ['M. biceps brachii','Kolun iki başlı kası',KC.kol,[0.04,1.40,0.25],[1,0,0.3],1,"Kolun ön yüzünde, iki başlı (caput) kas. Dirseği büker (fleksiyon), ön kola supinasyon yaptırır. Antagonisti m. triceps brachii.",['Biceps brachii','Biceps']],
+ ['M. triceps brachii','Kolun üç başlı kası',KC.kol,[-0.06,1.42,0.25],[-1,0,0.3],1,"Kolun arka yüzünde, üç başlı kas. Ulnanın olecranon'una yapışır; dirseği açar (ekstensiyon). Antagonisti m. biceps brachii.",['Triceps brachii','Triceps']],
+ ['M. quadriceps femoris','Uyluğun dört başlı kası',KC.bacak,[0.10,0.82,0.11],[1,0,0.1],1,"Uyluğun ön yüzünde, dört başlı: m. rectus femoris + vastus lateralis, medialis, intermedius. Kirişi içinde patella bulunur; dizi açar (ekstensiyon).",['Quadriceps femoris','Quadriceps']],
  ['M. erector spinae','Omurga dikleştirici kas',KC.sirt,[-0.09,1.20,0.035],[-1,0,0],1,"Omurganın iki yanında; dıştan içe iliocostalis, longissimus, spinalis. İki taraf kasılınca omurgayı arkaya eğer.",['Erector spinae']]
 ];
 const KAS_REGIONS = KAS_RAW.map(a => ({ latin:a[0], tr:a[1], color:a[2], side:'front', x:0, y:0, pr:!!a[5], mid:!a[5], d:a[6], alt:a[7] }));
@@ -3395,6 +3398,10 @@ const KAS_QS = [
  KQ('İskelet kasları vücut ağırlığının yaklaşık yüzde kaçını oluşturur?', '%40', ['%15','%25','%60','%75'], 0),
  KQ('Yapı olarak çizgili kasa benzeyen ama isteğimiz dışında (otonom) çalışan kas hangisidir?', ['Kalp kası','Kalp'], ['Düz kas','İskelet kası','Mimik kaslar','Diaphragma'], 1),
  KQ('İki karınlı (venter) kaslara örnek hangisidir?', ['M. digastricus','Digastricus'], ['M. biceps brachii','M. triceps brachii','M. quadriceps femoris','M. masseter'], 1),
+ KQ('Dört başlı (caput) kasa örnek hangisidir?', ['M. quadriceps femoris','Quadriceps femoris','Quadriceps'], ['M. biceps brachii','M. triceps brachii','M. digastricus','M. rectus abdominis'], 1),
+ KQ('Üç başlı kasa örnek hangisidir?', ['M. triceps brachii','Triceps brachii','Triceps'], ['M. biceps brachii','M. quadriceps femoris','M. digastricus','M. trapezius'], 1),
+ KQ('İki başlı kasa örnek hangisidir?', ['M. biceps brachii','Biceps brachii','Biceps'], ['M. triceps brachii','M. quadriceps femoris','M. digastricus (iki karınlı)','M. masseter'], 1),
+ KQ('M. biceps brachii ile m. triceps brachii birbirine göre nasıl kaslardır?', 'Antagonist (biri dirseği büker, diğeri açar)', ['Sinergist','İkisi de dirseği büker','İkisi de dirseği açar','Aynı başlangıçlı kaslar'], 0),
  KQ('Silindirik (teretik) kaslara örnek hangisidir?', ['M. teres major','Teres major'], ['M. quadratus lumborum','M. orbicularis oris','M. rectus femoris','M. obliquus externus'], 0),
  // baş
  KQ('Mimik (yüz) kaslarının motor siniri hangisidir?', ['N. facialis','Facialis','VII. kafa çifti'], ['N. mandibularis','N. accessorius','N. phrenicus','N. thoracodorsalis'], 1),
