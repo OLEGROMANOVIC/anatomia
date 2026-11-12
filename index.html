@@ -1462,9 +1462,6 @@ const KAS_RAW = [
  ['M. buccinator','Yanak kası',KC.bas,[0.10,1.82,0.05],[0.6,0,0.8],1,"Yanak derisi ile mukozası arasında. Yanakları bastırarak üflemeyi sağlar (nefesli çalgılar). Mimik kas.",[]],
  ['M. orbicularis oris','Ağız çevresi halka kası',KC.bas,[0.13,1.81,0],[1,0,0],0,"Ağız çevresinde, dudak derisinin altında. Dudakların esas kapatıcı kası. Mimik kas.",[]],
  ['M. masseter','Çiğneme kası (masseter)',KC.bas,[0.07,1.80,0.06],[0.3,0,1],1,"Kafatasından başlar, mandibulada sonlanır; çeneyi güçlü kapatır. Siniri n. mandibularis.",[]],
- ['Mm. suprahyoidei','Hyoid üstü kaslar',KC.boyun,[0.09,1.75,0.02],[0.5,-0.8,0],0,"4 kas: digastricus, stylohyoideus, mylohyoideus, geniohyoideus. Hyoidi ve larynx'i yukarı kaldırır (yutkunma).",['Hyoid ustu kaslar','Suprahyoid kaslar']],
- ['M. sternocleidomastoideus','Göğüs-köprücük-meme çıkıntısı kası',KC.boyun,[0.05,1.72,0.05],[0.5,0,0.85],1,"Sternum ve klavikuladan başlar, processus mastoideus'ta sonlanır. Tek taraf: başı aynı yana eğer, yüzü karşıya döndürür. Siniri n. accessorius.",['Sternocleidomastoideus','SCM']],
- ['Mm. infrahyoidei','Hyoid altı kaslar',KC.boyun,[0.09,1.69,0.015],[1,0,0],0,"4 kas: sternohyoideus, sternothyroideus, thyrohyoideus, omohyoideus. Hyoidi aşağı çeker.",['Hyoid alti kaslar','Infrahyoid kaslar']],
  ['Mm. scaleni','Skalen kaslar',KC.boyun,[-0.01,1.69,0.065],[0,0,1],1,"Boynun yanında, derinde (anterior, medius, posterior). Boyun omurlarının transvers çıkıntıları ile 1.-2. kaburga arasında; inspirasyona yardım.",['M. scalenus','Scalen kaslar','Skalen kaslar']],
  ['Platysma','Boyun deri kası',KC.boyun,[0.08,1.66,0.05],[0.8,0,0.5],1,"Boyunda deri altında, ince ve yüzeyel. Boyun derisini gerer, alt dudağı aşağı çeker. Siniri n. facialis.",['M. platysma']],
  ['M. pectoralis major','Büyük göğüs kası',KC.gogus,[0.10,1.52,0.09],[1,0,0.2],1,"Klavikula, sternum ve kaburgalardan başlar; humerusun crista tuberculi majoris'inde sonlanır. Aksillanın ön duvarı (plica axillaris anterior); güçlü adduktor.",[]],
@@ -1481,7 +1478,26 @@ const KAS_RAW = [
 const KAS_REGIONS = KAS_RAW.map(a => ({ latin:a[0], tr:a[1], color:a[2], side:'front', x:0, y:0, pr:!!a[5], mid:!a[5], d:a[6], alt:a[7] }));
 const KAS_DEFAULTS = {};
 KAS_RAW.forEach(a => { KAS_DEFAULTS[a[0]] = { p:a[3].slice(), n:a[4].slice() }; });
-KAS_RAW.forEach(a => SNAP_NEW.add(a[0]));
+Object.assign(KAS_DEFAULTS, {      // düzenleyiciden kaydedilen konumlar (model 90° döndürülmüş hâlde, ön yüz +x)
+  'M. occipitofrontalis':{p:[0.098,1.949,0.002],n:[0.832,0.552,-0.057]},
+  'M. temporalis':{p:[-0.021,1.921,-0.095],n:[0.152,0.085,-0.985]},
+  'M. orbicularis oculi':{p:[0.094,1.856,0.042],n:[0.969,-0.034,0.245]},
+  'M. buccinator':{p:[0.092,1.815,-0.043],n:[0.86,-0.199,-0.469]},
+  'M. orbicularis oris':{p:[0.116,1.776,0.002],n:[0.982,0.18,0.062]},
+  'M. masseter':{p:[0.028,1.887,-0.086],n:[0.246,-0.014,-0.969]},
+  'Mm. scaleni':{p:[0.022,1.677,0.039],n:[0.93,0.094,0.355]},
+  'Platysma':{p:[-0.025,1.655,0.088],n:[0.542,0.648,0.536]},
+  'M. pectoralis major':{p:[0.096,1.539,-0.091],n:[0.881,0.393,-0.263]},
+  'M. serratus anterior':{p:[0.045,1.389,0.162],n:[0.369,-0.064,0.927]},
+  'M. rectus abdominis':{p:[0.138,1.238,0.004],n:[0.907,-0.04,-0.42]},
+  'M. obliquus externus abdominis':{p:[0.083,1.323,-0.141],n:[0.666,-0.043,-0.745]},
+  'M. trapezius':{p:[-0.142,1.678,0.116],n:[-0.642,0.679,0.356]},
+  'M. latissimus dorsi':{p:[-0.17,1.361,0.106],n:[-0.936,-0.295,0.193]},
+  'M. biceps brachii':{p:[0.011,1.388,0.256],n:[0.901,0.188,0.391]},
+  'M. triceps brachii':{p:[-0.123,1.438,0.303],n:[-0.499,0.21,0.841]},
+  'M. quadriceps femoris':{p:[0.122,0.837,-0.119],n:[0.986,-0.05,0.161]},
+  'M. erector spinae':{p:[-0.127,1.281,-0.031],n:[-0.983,-0.18,0.032]}
+});
 
 /* ---------- Modeller ---------- */
 const MODELS = {
@@ -3397,10 +3413,9 @@ const KAS_QS = [
  KQ('Hareketsizlik veya sinir hasarıyla kasta kitlesel azalmaya ne denir?', 'Atrofi', ['Hipertrofi','İskemi','Tonus','Distrofi'], 1),
  KQ('İskelet kasları vücut ağırlığının yaklaşık yüzde kaçını oluşturur?', '%40', ['%15','%25','%60','%75'], 0),
  KQ('Yapı olarak çizgili kasa benzeyen ama isteğimiz dışında (otonom) çalışan kas hangisidir?', ['Kalp kası','Kalp'], ['Düz kas','İskelet kası','Mimik kaslar','Diaphragma'], 1),
- KQ('İki karınlı (venter) kaslara örnek hangisidir?', ['M. digastricus','Digastricus'], ['M. biceps brachii','M. triceps brachii','M. quadriceps femoris','M. masseter'], 1),
- KQ('Dört başlı (caput) kasa örnek hangisidir?', ['M. quadriceps femoris','Quadriceps femoris','Quadriceps'], ['M. biceps brachii','M. triceps brachii','M. digastricus','M. rectus abdominis'], 1),
- KQ('Üç başlı kasa örnek hangisidir?', ['M. triceps brachii','Triceps brachii','Triceps'], ['M. biceps brachii','M. quadriceps femoris','M. digastricus','M. trapezius'], 1),
- KQ('İki başlı kasa örnek hangisidir?', ['M. biceps brachii','Biceps brachii','Biceps'], ['M. triceps brachii','M. quadriceps femoris','M. digastricus (iki karınlı)','M. masseter'], 1),
+ KQ('Dört başlı (caput) kasa örnek hangisidir?', ['M. quadriceps femoris','Quadriceps femoris','Quadriceps'], ['M. biceps brachii','M. triceps brachii','M. trapezius','M. rectus abdominis'], 1),
+ KQ('Üç başlı kasa örnek hangisidir?', ['M. triceps brachii','Triceps brachii','Triceps'], ['M. biceps brachii','M. quadriceps femoris','M. trapezius','M. masseter'], 1),
+ KQ('İki başlı kasa örnek hangisidir?', ['M. biceps brachii','Biceps brachii','Biceps'], ['M. triceps brachii','M. quadriceps femoris','M. rectus abdominis','M. masseter'], 1),
  KQ('M. biceps brachii ile m. triceps brachii birbirine göre nasıl kaslardır?', 'Antagonist (biri dirseği büker, diğeri açar)', ['Sinergist','İkisi de dirseği büker','İkisi de dirseği açar','Aynı başlangıçlı kaslar'], 0),
  KQ('Silindirik (teretik) kaslara örnek hangisidir?', ['M. teres major','Teres major'], ['M. quadratus lumborum','M. orbicularis oris','M. rectus femoris','M. obliquus externus'], 0),
  // baş
@@ -3419,17 +3434,10 @@ const KAS_QS = [
  KQ('Saçlı derinin altında bulunan, orta bölümü galea aponeurotica olan kas hangisidir?', ['M. epicranius','M. occipitofrontalis','Epicranius','Occipitofrontalis'], ['M. temporalis','M. procerus','M. auricularis superior','M. corrugator supercilii'], 1),
  KQ('Burun kökünde deri altında bulunan kas hangisidir?', ['M. procerus','Procerus'], ['M. nasalis','M. corrugator supercilii','M. orbicularis oculi','M. levator labii superioris'], 1),
  // boyun
- KQ('Boyunda deri altında yüzeyel, ince ve zayıf olan; siniri n. facialis olan kas hangisidir?', ['Platysma','M. platysma'], ['M. sternocleidomastoideus','M. trapezius','M. omohyoideus','M. scalenus anterior'], 1),
- KQ('Sternum ve klavikuladan başlayıp processus mastoideus’ta sonlanan kas hangisidir?', ['M. sternocleidomastoideus','Sternocleidomastoideus','SCM'], ['M. scalenus anterior','M. omohyoideus','M. trapezius','M. sternohyoideus'], 1),
- KQ('M. sternocleidomastoideus ve m. trapezius’un ortak siniri hangisidir?', ['N. accessorius','Accessorius'], ['N. facialis','N. phrenicus','N. thoracodorsalis','N. mandibularis'], 1),
- KQ('M. sternocleidomastoideus tek taraflı kasıldığında ne olur?', 'Baş aynı tarafa eğilir, yüz karşı tarafa döner', ['Baş öne eğilir, yüz aynı tarafa döner','Baş arkaya eğilir, boyun öne çekilir','Kaburgalar yukarı kalkar','Hyoid kemik aşağı iner'], 0),
- KQ('Skalen kaslar nerede uzanır?', 'Boyun omurlarının transvers çıkıntıları ile 1. ve 2. kaburga arasında', ['Sternum ile processus mastoideus arasında','Atlas, axis ve oksipital kemik arasında','Hyoid kemik ile sternum arasında','Son 8 kaburga ile linea alba arasında'], 0),
- KQ('Skalen kaslar üst uçları sabitken kasılırsa ne olur?', 'Kaburgaları kaldırarak inspirasyona yardım eder', ['Ekspirasyona yardım eder','Başı karşı tarafa döndürür','Hyoidi aşağı çeker','Skapulayı yukarı çeker'], 0),
+ KQ('Boyunda deri altında yüzeyel, ince ve zayıf olan; siniri n. facialis olan kas hangisidir?', ['Platysma','M. platysma'], ['M. trapezius','M. masseter','M. scalenus anterior','M. buccinator'], 1),
+ KQ('Skalen kaslar nerede uzanır?', 'Boyun omurlarının transvers çıkıntıları ile 1. ve 2. kaburga arasında', ['Sternum ile processus mastoideus arasında','Atlas, axis ve oksipital kemik arasında','Klavikula ile 1. kaburga arasında','Son 8 kaburga ile linea alba arasında'], 0),
+ KQ('Skalen kaslar üst uçları sabitken kasılırsa ne olur?', 'Kaburgaları kaldırarak inspirasyona yardım eder', ['Ekspirasyona yardım eder','Başı karşı tarafa döndürür','Çeneyi kapatır','Skapulayı yukarı çeker'], 0),
  KQ('Hangisi prevertebral kas değildir?', 'M. scalenus anterior', ['M. longus colli','M. longus capitis','M. rectus capitis anterior','Hepsi prevertebraldir'], 0),
- KQ('Hyoid üstü kaslar kasıldığında ne olur?', 'Hyoid ve larynx yukarı kalkar; yutkunmada gıdanın nefes yoluna kaçması önlenir', ['Hyoid aşağı iner','Çene kapanır','Baş arkaya eğilir','Kaburgalar yukarı kalkar'], 0),
- KQ('Hangisi hyoid altı kas değildir?', 'M. mylohyoideus', ['M. sternohyoideus','M. sternothyroideus','M. thyrohyoideus','M. omohyoideus'], 0),
- KQ('Hangisi hyoid üstü kas değildir?', 'M. omohyoideus', ['M. digastricus','M. stylohyoideus','M. mylohyoideus','M. geniohyoideus'], 0),
- KQ('Hyoid kemiğe yapışan kaslar toplam kaç tanedir?', '8 (4 hyoid üstü + 4 hyoid altı)', ['4','6 (3 + 3)','10 (5 + 5)','12 (6 + 6)'], 0),
  // sırt
  KQ('Sırtın en yüzeyel kası hangisidir?', ['M. trapezius','Trapezius'], ['M. latissimus dorsi','Mm. rhomboidei','M. levator scapulae','M. erector spinae'], 1),
  KQ('M. trapezius nerelerde sonlanır?', 'Klavikula, acromion ve spina scapulae', ['Humerusun crista tuberculi minoris’i','Skapulanın iç kenarı','Processus coracoideus','Processus mastoideus'], 0),
@@ -3440,12 +3448,12 @@ const KAS_QS = [
  KQ('Mm. rhomboidei nereler arasında uzanır?', 'Son boyun omuru ve ilk 5 göğüs omuru ile skapulanın iç kenarı', ['İlk 4 boyun omuru ile skapulanın üst köşesi','3.–5. kaburgalar ile processus coracoideus','Klavikula ile 1. kaburga','Crista iliaca ile 12. kaburga'], 0),
  KQ('İlk dört boyun omuru ile skapulanın üst köşesi arasında uzanan kas hangisidir?', ['M. levator scapulae','Levator scapulae'], ['Mm. rhomboidei','M. trapezius','M. splenius cervicis','M. scalenus posterior'], 1),
  KQ('M. erector spinae’nin dıştan içe üç sütunu hangisidir?', 'M. iliocostalis, m. longissimus, m. spinalis', ['M. spinalis, m. longissimus, m. iliocostalis','M. longissimus, m. iliocostalis, m. spinalis','M. splenius, m. longissimus, m. spinalis','M. iliocostalis, m. spinalis, m. splenius'], 0),
- KQ('Derin ense kasları hangi kemikler arasındaki bağlantıyı sağlar?', 'Atlas, axis ve oksipital kemik', ['Sternum ve klavikula','Skapula ve humerus','Sakrum ve ilium','Hyoid ve mandibula'], 0),
+ KQ('Derin ense kasları hangi kemikler arasındaki bağlantıyı sağlar?', 'Atlas, axis ve oksipital kemik', ['Sternum ve klavikula','Skapula ve humerus','Sakrum ve ilium','Maxilla ve mandibula'], 0),
  // göğüs
  KQ('Aksillanın ön duvarını yapan ve alt kenarı plica axillaris anterior’u oluşturan kas hangisidir?', ['M. pectoralis major','Pectoralis major'], ['M. pectoralis minor','M. latissimus dorsi','M. serratus anterior','M. subclavius'], 1),
  KQ('M. pectoralis major nerede sonlanır?', 'Humerusun crista tuberculi majoris’inde', ['Humerusun crista tuberculi minoris’inde','Processus coracoideus’ta','Skapulanın iç kenarında','Klavikulada'], 0),
  KQ('3.–5. kaburgalar ile processus coracoideus arasında uzanan kas hangisidir?', ['M. pectoralis minor','Pectoralis minor'], ['M. pectoralis major','M. subclavius','M. serratus anterior','M. coracobrachialis'], 1),
- KQ('Klavikula ile 1. kaburga arasında yastık görevi gören kas hangisidir?', ['M. subclavius','Subclavius'], ['M. pectoralis minor','M. scalenus anterior','M. omohyoideus','M. levator scapulae'], 1),
+ KQ('Klavikula ile 1. kaburga arasında yastık görevi gören kas hangisidir?', ['M. subclavius','Subclavius'], ['M. pectoralis minor','M. scalenus anterior','M. serratus anterior','M. levator scapulae'], 1),
  KQ('M. serratus anterior’un siniri hangisidir?', ['N. thoracicus longus','Thoracicus longus'], ['N. thoracodorsalis','N. accessorius','N. phrenicus','N. intercostalis'], 1),
  KQ('M. serratus anterior felcinde ne görülür?', ['Kanat skapula','Kanat scapula'], ['Omuz çıkığı','Plica axillaris kaybı','Kolun adduksiyon kaybı','Başın eğilmesi'], 1),
  KQ('Kolun 180°ye kadar abduksiyonunda humerus başına destek olan, ilk 8–10 kaburgadan başlayan kas hangisidir?', ['M. serratus anterior','Serratus anterior'], ['M. trapezius','M. pectoralis minor','Mm. rhomboidei','M. latissimus dorsi'], 1),
@@ -4298,7 +4306,7 @@ const NOTES=[
 'Kemik ve eklemler hareketin **pasif**, iskelet kasları **aktif** unsurudur. İskelet kasları vücut ağırlığının **%40**’ı; kasın **%75**’i su.',
 'Kılıflar dıştan içe: **epimisyum** (tüm kas) → **perimisyum** (fasciculus) → **endomisyum** (tek lif).',
 'Kas en az iki kemiğe tutunur (bir eklemi çaprazlar). **Origo**: sabit, gövdeye yakın uç. **Insertio**: hareket eden, uzak uç. Tendonun yassı-yayvan şekli: **aponeurosis**.',
-'**Venter** (karın) = kas gövdesi; iki karınlı kas: **m. digastricus**. **Caput** (baş): biceps, triceps, quadriceps.',
+'**Venter** (karın) = kas gövdesi. **Caput** (baş): biceps, triceps, quadriceps.',
 '**Sinergist** aynı işi, **antagonist** zıt işi yapar. **Tonus**: istirahatteki gerginlik. **Hipertrofi** büyüme, **atrofi** küçülme, **iskemi** yetersiz kan.',
 '**Motor nokta**: sinirin kasa girdiği yer. **Motor ünite**: bir motor sinir + innerve ettiği tüm lifler. İnce hareketli kaslarda motor ünite sayısı çok.',
 'İsimlendirme: şekil (quadratus, orbicularis, teres), lif yönü (rectus, obliquus, transversus), yer (supra/infraspinatus), yapışma (sternothyroideus), fonksiyon (flexor, extensor, adductor, abductor).']},
@@ -4312,11 +4320,8 @@ const NOTES=[
 '**M. pterygoideus lateralis** çeneyi **açar**; diğer üçü güçlü **kapatır**.']},
 {t:'Boyun kasları',i:[
 '**Platysma**: deri altında, ince; boyun derisini gerer. Siniri **n. facialis**.',
-'**M. sternocleidomastoideus**: sternum + klavikula → **processus mastoideus**. Tek taraf: baş aynı yana eğilir, yüz karşıya döner. Siniri **n. accessorius**.',
 '**Prevertebral** (önde): m. longus colli, m. longus capitis, m. rectus capitis anterior.',
 '**Skalenler** (yanda; anterior, medius, posterior): boyun omurlarının transvers çıkıntıları → **1. ve 2. kaburga**. Kaburgaları kaldırıp **inspirasyona** yardım eder.',
-'**Hyoid üstü (4)**: digastricus, stylohyoideus, mylohyoideus, geniohyoideus → hyoidi **yukarı** kaldırır (yutkunma).',
-'**Hyoid altı (4)**: sternohyoideus, sternothyroideus, thyrohyoideus, omohyoideus → hyoidi **aşağı** çeker.']},
 {t:'Sırt kasları',i:[
 '**M. trapezius**: en yüzeyel; oksipital, lig. nuchae, boyun-göğüs omurları → **klavikula, acromion, spina scapulae**. Siniri **n. accessorius**.',
 '**M. latissimus dorsi**: fascia thoracolumbalis (alt göğüs + bel omurları, sakrum, crista iliaca, son kaburgalar) → humerusun **crista tuberculi minoris**. **Kolun en kuvvetli adduktoru**; **plica axillaris posterior**. Siniri **n. thoracodorsalis**.',
