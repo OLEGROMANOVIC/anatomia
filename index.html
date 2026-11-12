@@ -948,11 +948,12 @@
   /* ===== DOKTOR 3B: resimlerin yerine canlı model (doctor.glb yüklenince) ===== */
   .has-doc{position:relative}
   .has-doc>img,.has-doc>.eye{visibility:hidden}
-  .has-doc>canvas.dcv{position:absolute;left:-80%;top:auto;bottom:-13%;width:260%;height:160%;pointer-events:none;display:block}
+  .has-doc>canvas.dcv{position:absolute;left:-20%;top:auto;bottom:0;width:140%;height:115%;pointer-events:none;display:block}
+  .doc .head2.has-doc{margin-right:8px}
   .loader .name.has-doc{width:min(64vw,280px);height:min(78vw,330px);line-height:normal}
   .loader .name.has-doc>img{display:none}
   .loader:not(.doc-fail) .name .logo{visibility:hidden}               /* logo yalnızca doktor yüklenemezse görünür */
-  .loader .name.has-doc>canvas.dcv{left:-20%;top:0;bottom:auto;width:140%;height:100%}
+  .loader .name.has-doc>canvas.dcv{left:0;top:0;bottom:auto;width:100%;height:100%}
   .loader .name.has-doc ~ .track{margin-top:6px}
 </style>
 </head>
@@ -2779,6 +2780,32 @@ function docRenderer(){
   DOC3.renderer = r;
   return r;
 }
+/* animasyon boyunca gerçek (iskelet dönüşümlü) sınır kutusu: alkış ve dansın tüm pozlarını kapsar */
+function docAnimBox(){
+  const root = skClone(DOC3.gltf.scene), mixer = new THREE.AnimationMixer(root), box = new THREE.Box3(), v = new THREE.Vector3();
+  const measure = () => {
+    root.updateMatrixWorld(true);
+    root.traverse(o => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+      if (o.isSkinnedMesh && o.skeleton) o.skeleton.update();
+      const pos = o.geometry.attributes.position, step = Math.max(1, Math.floor(pos.count / 2500));
+      for (let i = 0; i < pos.count; i += step){
+        v.fromBufferAttribute(pos, i);
+        if (o.isSkinnedMesh && o.applyBoneTransform) o.applyBoneTransform(i, v);
+        v.applyMatrix4(o.matrixWorld);
+        if (Number.isFinite(v.x + v.y + v.z)) box.expandByPoint(v);
+      }
+    });
+  };
+  const clips = [DOC3.clips.clap, DOC3.clips.dance].filter(Boolean);
+  if (!clips.length) measure();
+  clips.forEach(cl => {
+    const a = mixer.clipAction(cl); a.play();
+    for (let k = 0; k <= 12; k++){ mixer.setTime(cl.duration * k / 12); measure(); }
+    a.stop();
+  });
+  return box;
+}
 function docAttach(host, mode){
   host.dataset.dc = '1';
   const cv = document.createElement('canvas');
@@ -2790,10 +2817,11 @@ function docAttach(host, mode){
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a8, 2.2));
   const dl = new THREE.DirectionalLight(0xffffff, 2.0); dl.position.set(1.5, 3, 4); scene.add(dl);
   scene.add(root);
-  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  if (!DOC3.box) DOC3.box = docAnimBox();
+  const box = DOC3.box, size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
   const cam = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
   const mixer = new THREE.AnimationMixer(root);
-  const slot = { host, cv, ctx:cv.getContext('2d'), scene, cam, mixer, mode, size, c, cur:null, last:'' };
+  const slot = { host, cv, ctx:cv.getContext('2d'), scene, cam, mixer, mode, size, c, minY:box.min.y, cur:null, last:'' };
   if (host.closest('.loader') && !DOC3.shownAt) DOC3.shownAt = performance.now();
   mixer.addEventListener('finished', () => docNext(slot));
   docNext(slot);
@@ -2830,10 +2858,10 @@ function docFrame(){
     const r = docRenderer();
     r.setPixelRatio(1); r.setSize(w, h, false);
     s.cam.aspect = w / h;
-    const DOC_SCALE = 0.75;                                                          // doktorun boyutu (1 = önceki boy)
-    const fit = Math.max(s.size.y * 1.6, (s.size.x * 1.9) / s.cam.aspect) / DOC_SCALE;   // baş üstünde alkış, yanlarda dans için geniş pay
-    const dist = (fit / 2) / Math.tan(THREE.MathUtils.degToRad(s.cam.fov / 2));
-    const ty = s.c.y - s.size.y * 0.5 + fit * 0.419;                                 // ayaklar hep aynı yerde (altta) kalsın
+    const DOC_SCALE = 0.75;                                                          // kutuya göre doktorun boyutu
+    const fit = Math.max(s.size.y * 1.04, (s.size.x * 1.04) / s.cam.aspect) / DOC_SCALE; // tüm animasyon pozları kutuya sığar
+    const dist = (fit / 2) / Math.tan(THREE.MathUtils.degToRad(s.cam.fov / 2)) + s.size.z / 2;
+    const ty = s.minY - fit * 0.02 + fit / 2;                                        // ayaklar kutunun altında
     s.cam.position.set(s.c.x, ty, s.c.z + dist);
     s.cam.lookAt(s.c.x, ty, s.c.z);
     s.cam.updateProjectionMatrix();
