@@ -948,9 +948,10 @@
   /* ===== DOKTOR 3B: resimlerin yerine canlı model (doctor.glb yüklenince) ===== */
   .has-doc{position:relative}
   .has-doc>img,.has-doc>.eye{visibility:hidden}
-  .has-doc>canvas.dcv{position:absolute;left:-35%;top:-6%;width:170%;height:112%;pointer-events:none;display:block}
+  .has-doc>canvas.dcv{position:absolute;left:-45%;top:-32%;width:190%;height:137%;pointer-events:none;display:block}
   .loader .name.has-doc{width:min(64vw,280px);height:min(78vw,330px);line-height:normal}
   .loader .name.has-doc>img{display:none}
+  .loader:not(.doc-fail) .name .logo{visibility:hidden}               /* logo yalnızca doktor yüklenemezse görünür */
   .loader .name.has-doc>canvas.dcv{left:0;top:0;width:100%;height:100%}
   .loader .name.has-doc ~ .track{margin-top:6px}
 </style>
@@ -2793,6 +2794,7 @@ function docAttach(host, mode){
   const cam = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
   const mixer = new THREE.AnimationMixer(root);
   const slot = { host, cv, ctx:cv.getContext('2d'), scene, cam, mixer, mode, size, c, cur:null, last:'' };
+  if (host.closest('.loader') && !DOC3.shownAt) DOC3.shownAt = performance.now();
   mixer.addEventListener('finished', () => docNext(slot));
   docNext(slot);
   DOC3.slots.push(slot);
@@ -2828,10 +2830,11 @@ function docFrame(){
     const r = docRenderer();
     r.setPixelRatio(1); r.setSize(w, h, false);
     s.cam.aspect = w / h;
-    const fit = Math.max(s.size.y * 1.12, (s.size.x * 1.25) / s.cam.aspect);       // boyu ve (kollar açılınca) genişliği sığdır
+    const fit = Math.max(s.size.y * 1.45, (s.size.x * 1.7) / s.cam.aspect);        // baş üstünde alkış, yanlarda dans için pay bırak
     const dist = (fit / 2) / Math.tan(THREE.MathUtils.degToRad(s.cam.fov / 2));
-    s.cam.position.set(s.c.x, s.c.y + s.size.y * 0.04, s.c.z + dist);
-    s.cam.lookAt(s.c.x, s.c.y, s.c.z);
+    const ty = s.c.y + s.size.y * 0.1;                                               // ayaklar altta kalsın, boşluk başın üstünde olsun
+    s.cam.position.set(s.c.x, ty, s.c.z + dist);
+    s.cam.lookAt(s.c.x, ty, s.c.z);
     s.cam.updateProjectionMatrix();
     r.render(s.scene, s.cam);
     s.ctx.clearRect(0, 0, w, h);
@@ -2848,7 +2851,20 @@ loader.load('doctor.glb', g => {
   if (!DOC3.clips.dance && !DOC3.clips.clap && g.animations[0]) DOC3.clips.dance = g.animations[0];
   console.log('doctor.glb animasyonları:', g.animations.map(a => a.name));
   DOC3.clock.getDelta();
-}, undefined, err => { DOC3.failed = true; console.warn('doctor.glb yüklenemedi, resimler kullanılıyor', err); });
+}, undefined, err => { DOC3.failed = true; loadEl.classList.add('doc-fail'); console.warn('doctor.glb yüklenemedi, resimler kullanılıyor', err); });
+/* yükleme ekranı: doktor hazır olmadan kapanmaz; ilk açılışta en az ~1,6 sn dans eder */
+function finishLoading(fn){
+  const t0 = performance.now(), first = !DOC3.firstDone;
+  (function tick(){
+    const now = performance.now();
+    const ready = DOC3.failed || (DOC3.gltf && DOC3.shownAt);
+    const danced = !first || DOC3.failed || (DOC3.shownAt && now - DOC3.shownAt > 1600);
+    if ((ready && danced) || now - t0 > 9000){
+      if (!ready) loadEl.classList.add('doc-fail');
+      DOC3.firstDone = true; fn();
+    } else requestAnimationFrame(tick);
+  })();
+}
 requestAnimationFrame(docFrame);
 
 function loadModel(M){
@@ -3996,10 +4012,12 @@ function activateModel(M){
   camera.position.copy(v.pos);
   controls.target.copy(v.target);
   controls.update();
-  loadEl.classList.add('done');
-  document.body.classList.add('ui-ready');
-  tutorInit();
-  if (tut.skWait){ tut.skWait = false; setTimeout(tutorStep5, 1700); }   // tanıtım: iskelet yüklendi
+  finishLoading(() => {
+    loadEl.classList.add('done');
+    document.body.classList.add('ui-ready');
+    tutorInit();
+    if (tut.skWait){ tut.skWait = false; setTimeout(tutorStep5, 1700); }   // tanıtım: iskelet yüklendi
+  });
 }
 function switchModel(k){
   if (k === curModel && model) return;
