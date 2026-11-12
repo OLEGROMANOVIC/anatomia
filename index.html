@@ -943,7 +943,6 @@
   .fabface{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;border-radius:16px}
 
   /* ===== KAS MODELİ: işaretli nokta yok; noktaya bağlı test modları gizli ===== */
-  .muscle-mode .qm[data-lv="easy"],.muscle-mode .qm[data-lv="place"]{display:none !important}
 </style>
 </head>
 <body>
@@ -1452,10 +1451,39 @@ const SKELETON_DEFAULTS = {
 const SNAP_NEW = new Set(['Os frontale','Os parietale','Os temporale','Os occipitale','Os sphenoidale','Os nasale','Os zygomaticum','Maxilla','Mandibula']);   // tahmini konumlar yüzeye yapıştırılır; düzenleyip kaydedince sabitlenir
 JT_RAW.forEach(a => { SKELETON_DEFAULTS[a[0]] = { p:a[2].slice(), n:a[3].slice() }; SNAP_NEW.add(a[0]); });   // eklem noktaları: tahmini konum, yüzeye yapıştırılır
 
+/* ---------- Kas modeli: temel kaslar (kaslar_1.pdf) ----------
+   Konumlar YAKLAŞIKTIR (x ön, y yukarı, z yan; boy 2 birim) ve açılışta en yakın yüzeye yapıştırılır. "Düzenle" ile ince ayar yapılabilir.
+   Satır: [latin, türkçe, renk, p, n, çift mi, açıklama, diğer yazımlar] */
+const KC = { bas:'#3b8cff', boyun:'#2fd07a', gogus:'#ff5ab8', karin:'#1fc7c7', sirt:'#ff8a1f' };
+const KAS_RAW = [
+ ['M. occipitofrontalis','Alın-artkafa kası',KC.bas,[0.11,1.96,0.03],[0.9,0.4,0],1,"Saçlı derinin altında (m. epicranius). Oksipital kemikten kaşlara uzanır; ortası galea aponeurotica. Siniri n. facialis.",['M. epicranius','Epicranius']],
+ ['M. temporalis','Şakak kası',KC.bas,[0.03,1.92,0.08],[0,0.2,1],1,"Çiğneme kası. Şakak bölgesinden başlar, mandibulada sonlanır; çeneyi kapatır. Siniri n. mandibularis.",[]],
+ ['M. orbicularis oculi','Göz çevresi halka kası',KC.bas,[0.12,1.88,0.035],[1,0,0.2],1,"Orbita girişini daire şeklinde sarar. Göz kapaklarını kapatır, göz kırpmayı sağlar. Mimik kas (n. facialis).",[]],
+ ['M. buccinator','Yanak kası',KC.bas,[0.10,1.82,0.05],[0.6,0,0.8],1,"Yanak derisi ile mukozası arasında. Yanakları bastırarak üflemeyi sağlar (nefesli çalgılar). Mimik kas.",[]],
+ ['M. orbicularis oris','Ağız çevresi halka kası',KC.bas,[0.13,1.81,0],[1,0,0],0,"Ağız çevresinde, dudak derisinin altında. Dudakların esas kapatıcı kası. Mimik kas.",[]],
+ ['M. masseter','Çiğneme kası (masseter)',KC.bas,[0.07,1.80,0.06],[0.3,0,1],1,"Kafatasından başlar, mandibulada sonlanır; çeneyi güçlü kapatır. Siniri n. mandibularis.",[]],
+ ['Mm. suprahyoidei','Hyoid üstü kaslar',KC.boyun,[0.09,1.75,0.02],[0.5,-0.8,0],0,"4 kas: digastricus, stylohyoideus, mylohyoideus, geniohyoideus. Hyoidi ve larynx'i yukarı kaldırır (yutkunma).",['Hyoid ustu kaslar','Suprahyoid kaslar']],
+ ['M. sternocleidomastoideus','Göğüs-köprücük-meme çıkıntısı kası',KC.boyun,[0.05,1.72,0.05],[0.5,0,0.85],1,"Sternum ve klavikuladan başlar, processus mastoideus'ta sonlanır. Tek taraf: başı aynı yana eğer, yüzü karşıya döndürür. Siniri n. accessorius.",['Sternocleidomastoideus','SCM']],
+ ['Mm. infrahyoidei','Hyoid altı kaslar',KC.boyun,[0.09,1.69,0.015],[1,0,0],0,"4 kas: sternohyoideus, sternothyroideus, thyrohyoideus, omohyoideus. Hyoidi aşağı çeker.",['Hyoid alti kaslar','Infrahyoid kaslar']],
+ ['Mm. scaleni','Skalen kaslar',KC.boyun,[-0.01,1.69,0.065],[0,0,1],1,"Boynun yanında, derinde (anterior, medius, posterior). Boyun omurlarının transvers çıkıntıları ile 1.-2. kaburga arasında; inspirasyona yardım.",['M. scalenus','Scalen kaslar','Skalen kaslar']],
+ ['Platysma','Boyun deri kası',KC.boyun,[0.08,1.66,0.05],[0.8,0,0.5],1,"Boyunda deri altında, ince ve yüzeyel. Boyun derisini gerer, alt dudağı aşağı çeker. Siniri n. facialis.",['M. platysma']],
+ ['M. pectoralis major','Büyük göğüs kası',KC.gogus,[0.10,1.52,0.09],[1,0,0.2],1,"Klavikula, sternum ve kaburgalardan başlar; humerusun crista tuberculi majoris'inde sonlanır. Aksillanın ön duvarı (plica axillaris anterior); güçlü adduktor.",[]],
+ ['M. serratus anterior','Ön dişli kas',KC.gogus,[0.05,1.42,0.14],[0.4,0,1],1,"İlk 8-10 kaburgadan dişlerle başlar, skapulanın iç kenarında sonlanır. Kolun 180° kalkmasına yardım. Siniri n. thoracicus longus; felcinde kanat skapula.",[]],
+ ['M. rectus abdominis','Düz karın kası',KC.karin,[0.11,1.25,0.04],[1,0,0],1,"Pubisten sternum alt ucuna uzanır; ortada linea alba. Üzerinde intersectio tendinea; rectus kılıfı içindedir.",[]],
+ ['M. obliquus externus abdominis','Dış eğik karın kası',KC.karin,[0.07,1.25,0.12],[0.5,0,0.9],1,"Üç yassı karın kasının en yüzeyeli. Son 8 kaburgadan başlar; aponevrozu lig. inguinale'yi yapar. (Derininde obliquus internus ve transversus.)",['M. obliquus externus','Obliquus externus']],
+ ['M. trapezius','Kukuleta kası',KC.sirt,[-0.08,1.60,0.06],[-1,0.3,0.2],1,"Sırtın en yüzeyel kası. Oksipital kemik, boyun ve göğüs omurlarından başlar; klavikula, acromion ve spina scapulae'da sonlanır. Siniri n. accessorius.",[]],
+ ['M. latissimus dorsi','Geniş sırt kası',KC.sirt,[-0.07,1.35,0.11],[-0.8,0,0.5],1,"Alt göğüs ve bel omurları, sakrum, crista iliaca'dan başlar; humerusun crista tuberculi minoris'inde sonlanır. Kolun en güçlü adduktoru. Siniri n. thoracodorsalis.",[]],
+ ['M. erector spinae','Omurga dikleştirici kas',KC.sirt,[-0.09,1.20,0.035],[-1,0,0],1,"Omurganın iki yanında; dıştan içe iliocostalis, longissimus, spinalis. İki taraf kasılınca omurgayı arkaya eğer.",['Erector spinae']]
+];
+const KAS_REGIONS = KAS_RAW.map(a => ({ latin:a[0], tr:a[1], color:a[2], side:'front', x:0, y:0, pr:!!a[5], mid:!a[5], d:a[6], alt:a[7] }));
+const KAS_DEFAULTS = {};
+KAS_RAW.forEach(a => { KAS_DEFAULTS[a[0]] = { p:a[3].slice(), n:a[4].slice() }; });
+KAS_RAW.forEach(a => SNAP_NEW.add(a[0]));
+
 /* ---------- Modeller ---------- */
 const MODELS = {
   body:    { file:'anatomymodel.glb', title:'Vücut',   kind:'body', regions:BODY_REGIONS,    defaults:DEFAULTS, store:'anatomia-pozisyon-v3', group:null, info:null, flipV:false },
-  kas:     { file:'musculus.glb',     title:'Kas',     kind:'muscle', regions:[],            defaults:{},       store:'anatomia-kas-v1',     group:null, info:null, flipV:false, rotY:0 },
+  kas:     { file:'musculus.glb',     title:'Kas',     kind:'muscle', regions:KAS_REGIONS,   defaults:KAS_DEFAULTS, store:'anatomia-kas-v1',     group:null, info:null, flipV:false, rotY:0 },
   skeleton:{ file:'skeleton.glb',   title:'İskelet', kind:'skeleton', regions:SKELETON_REGIONS, defaults:SKELETON_DEFAULTS, store:'anatomia-iskelet-v1', group:null, info:null, flipV:false, rotY:0 },
 };
 let curModel = 'body';
@@ -2006,7 +2034,7 @@ function startQuiz(mode){
   else if (quiz.mode === 'vize50') quiz.queue = buildVize(50, true);
   else if (quiz.mode === 'place') quiz.queue = quiz.queue.slice(0, 15);
   else if (quiz.mode === 'oral') quiz.queue = buildOral();
-  else if (quiz.mode === 'hard' && !REGIONS.length) quiz.queue = buildSozluKE();   // kas modeli: noktasız sözlü          // teorik grup: anatomi çeşitleri
+  else if (quiz.mode === 'hard' && curModel === 'kas') quiz.queue = shuffle(quiz.queue.concat(buildSozluKE().slice(0, 12)));   // kas: işaretli kaslar + yazılı kas/eklem soruları          // teorik grup: anatomi çeşitleri
   quiz.theoryLeft = quiz.mode === 'medium' ? 2 : 0;           // orta modda 2 tur çeşit eşleştirmesi
   quiz.total = quiz.queue.length;
   quiz.tol = markers.map((m, i) => {
@@ -3836,7 +3864,11 @@ function activateModel(M){
   applyFlip(M);
   cloud = null;
   if (fixBoneSides()) save();
-  if (M.kind === 'skeleton'){       // yeni eklenen etiketleri en yakın yüzeye yapıştır (kullanıcı kaydı yoksa)
+  if (M.kind === 'muscle' && !M.rotY){       // kas modeli: kayıt yoksa omuz genişliği z ekseninde olacak şekilde çevir (ön yüz +x)
+    let saved = false; try { saved = !!localStorage.getItem(M.store); } catch (e) {}
+    if (!saved && M.info && M.info.norm && M.info.norm[0] > M.info.norm[2] * 1.15){ M.rotY = 1; applyFlip(M); cloud = null; }
+  }
+  if (M.kind === 'skeleton' || M.kind === 'muscle'){       // yeni eklenen etiketleri en yakın yüzeye yapıştır (kullanıcı kaydı yoksa)
     REGIONS.forEach(r => {
       if (!SNAP_NEW.has(r.latin) || r.sv || !r.p) return;
       for (let k = 0; k < (M.rotY || 0); k++){ r.p = [r.p[2], r.p[1], -r.p[0]]; r.n = [r.n[2], r.n[1], -r.n[0]]; }   // kayıtlı döndürmeye uydur
